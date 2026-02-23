@@ -1,0 +1,45 @@
+@IdeaManagementProject_Server_HostAddress = https://localhost:7115
+@token = REPLACE_WITH_TOKEN
+
+### Get register options
+GET {{IdeaManagementProject_Server_HostAddress}}/api/auth/register-options
+Accept: application/json
+
+### Register new user
+POST {{IdeaManagementProject_Server_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "David210",
+  "email": "david210@example.com",
+  "password": "Pass@123",
+  "role": "QA_COORDINATOR",
+  "departmentId": 2,
+  "acceptedTerms": true
+}
+
+### Login (ADMIN seed user)
+POST {{IdeaManagementProject_Server_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@university.com",
+  "password": "Admin@123"
+}
+
+###
+GET {{IdeaManagementProject_Server_HostAddress}}/api/auth/me
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+GET {{IdeaManagementProject_Server_HostAddress}}/api/admin/ping
+Authorization: Bearer {{token}}
+
+###
+GET {{IdeaManagementProject_Server_HostAddress}}/api/manager/ping
+Authorization: Bearer {{token}}
+
+###
+GET {{IdeaManagementProject_Server_HostAddress}}/api/staff/ping
+Authorization: Bearer {{token}}

@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="IdeaManagementProject.client/IdeaManagementProject.Client.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+  <Project Path="IdeaManagementProject.Server/IdeaManagementProject.Server.csproj" />
+</Solution>
