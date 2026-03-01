@@ -8,4 +8,5 @@ public class Department
 
     public User? QaCoordinatorUser { get; set; }
     public ICollection<User> Users { get; set; } = new List<User>();
+    public ICollection<Idea> Ideas { get; set; } = new List<Idea>();
 }

@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<Department> Departments => Set<Department>();
+    public DbSet<Idea> Ideas => Set<Idea>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -97,6 +98,55 @@ public class AppDbContext : DbContext
             entity.HasOne(x => x.Role)
                 .WithMany(x => x.Users)
                 .HasForeignKey(x => x.RoleId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Idea>(entity =>
+        {
+            entity.ToTable("Idea");
+
+            entity.HasKey(x => x.IdeaId);
+            entity.Property(x => x.IdeaId).HasColumnName("idea_id");
+
+            entity.Property(x => x.Title)
+                .HasColumnName("title")
+                .HasMaxLength(250)
+                .IsRequired();
+
+            entity.Property(x => x.Content)
+                .HasColumnName("content")
+                .HasColumnType("longtext")
+                .IsRequired();
+
+            entity.Property(x => x.AuthorUserId)
+                .HasColumnName("author_user_id")
+                .IsRequired();
+
+            entity.Property(x => x.DepartmentId)
+                .HasColumnName("department_id")
+                .IsRequired();
+
+            entity.Property(x => x.IsAnonymous)
+                .HasColumnName("is_anonymous")
+                .IsRequired();
+
+            entity.Property(x => x.ViewCount)
+                .HasColumnName("view_count")
+                .HasDefaultValue(0)
+                .IsRequired();
+
+            entity.Property(x => x.CreatedAt)
+                .HasColumnName("created_at")
+                .IsRequired();
+
+            entity.HasOne(x => x.AuthorUser)
+                .WithMany(x => x.Ideas)
+                .HasForeignKey(x => x.AuthorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.Department)
+                .WithMany(x => x.Ideas)
+                .HasForeignKey(x => x.DepartmentId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }

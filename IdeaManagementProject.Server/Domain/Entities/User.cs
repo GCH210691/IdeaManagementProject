@@ -12,4 +12,5 @@ public class User
 
     public Department Department { get; set; } = null!;
     public Role Role { get; set; } = null!;
+    public ICollection<Idea> Ideas { get; set; } = new List<Idea>();
 }

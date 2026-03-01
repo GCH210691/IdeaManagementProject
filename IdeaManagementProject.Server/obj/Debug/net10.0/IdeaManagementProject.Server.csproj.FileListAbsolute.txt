@@ -140,7 +140,6 @@ C:\Users\Administrator\source\repos\IdeaManagementProject\IdeaManagementProject.
 C:\Users\Administrator\source\repos\IdeaManagementProject\IdeaManagementProject.Server\bin\Debug\net10.0\IdeaManagementProject.Server.staticwebassets.endpoints.json
 C:\Users\Administrator\source\repos\IdeaManagementProject\IdeaManagementProject.Server\bin\Debug\net10.0\spa.proxy.json
 C:\Users\Administrator\source\repos\IdeaManagementProject\IdeaManagementProject.Server\bin\Debug\net10.0\IdeaManagementProject.Server.staticwebassets.runtime.json
-C:\Users\Administrator\source\repos\IdeaManagementProject\IdeaManagementProject.Server\bin\Debug\net10.0\IdeaManagementProject.Server.exe
 C:\Users\Administrator\source\repos\IdeaManagementProject\IdeaManagementProject.Server\bin\Debug\net10.0\IdeaManagementProject.Server.deps.json
 C:\Users\Administrator\source\repos\IdeaManagementProject\IdeaManagementProject.Server\bin\Debug\net10.0\IdeaManagementProject.Server.runtimeconfig.json
 C:\Users\Administrator\source\repos\IdeaManagementProject\IdeaManagementProject.Server\bin\Debug\net10.0\IdeaManagementProject.Server.dll
@@ -272,3 +271,5 @@ C:\Users\Administrator\source\repos\IdeaManagementProject\IdeaManagementProject.
 C:\Users\Administrator\source\repos\IdeaManagementProject\IdeaManagementProject.Server\obj\Debug\net10.0\IdeaManagementProject.Server.pdb
 C:\Users\Administrator\source\repos\IdeaManagementProject\IdeaManagementProject.Server\obj\Debug\net10.0\IdeaManagementProject.Server.genruntimeconfig.cache
 C:\Users\Administrator\source\repos\IdeaManagementProject\IdeaManagementProject.Server\obj\Debug\net10.0\ref\IdeaManagementProject.Server.dll
+C:\Users\Administrator\source\repos\IdeaManagementProject\IdeaManagementProject.Server\obj\Debug\net10.0\IdeaManagementProject.Server.sourcelink.json
+C:\Users\Administrator\source\repos\IdeaManagementProject\IdeaManagementProject.Server\bin\Debug\net10.0\IdeaManagementProject.Server.exe

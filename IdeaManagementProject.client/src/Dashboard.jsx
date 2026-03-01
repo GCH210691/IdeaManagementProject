@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { clearAuthSession, getAuthSession, getDisplayName, roleToPath } from './authStorage';
+import { useEffect, useMemo } from 'react';
+import { canCreateIdeas, clearAuthSession, getAuthSession, getDisplayName, roleToLabel } from './authStorage';
 
 function pageStyle() {
     return {
@@ -20,25 +20,23 @@ function cardStyle() {
     };
 }
 
-export default function RoleLandingPage({ expectedRole, roleText }) {
-    const session = getAuthSession();
+export default function Dashboard() {
+    const session = useMemo(() => getAuthSession(), []);
     const user = session?.user;
 
     useEffect(() => {
         if (!session?.token || !user) {
             window.location.href = '/login';
-            return;
         }
-
-        if (user.role !== expectedRole) {
-            const ownPath = roleToPath(user.role);
-            window.location.href = ownPath;
-        }
-    }, [expectedRole, session, user]);
+    }, [session, user]);
 
     function logout() {
         clearAuthSession();
         window.location.href = '/login';
+    }
+
+    function viewIdeas() {
+        window.location.href = '/ideas';
     }
 
     if (!session?.token || !user) {
@@ -46,17 +44,22 @@ export default function RoleLandingPage({ expectedRole, roleText }) {
     }
 
     const username = getDisplayName(user);
+    const roleText = roleToLabel(user.role);
+    const showIdeasButton = canCreateIdeas(user);
 
     return (
         <div style={pageStyle()}>
             <section style={cardStyle()}>
+                <h1 style={{ marginTop: 0 }}>Dashboard</h1>
                 <p style={{ margin: 0, fontSize: '1.1rem' }}>
-                    {`welcome, ${roleText} ${username}.`}
+                    {`welcome, ${roleText} ${username}`}
                 </p>
                 <p style={{ marginTop: '1rem' }}>
-                    <button onClick={logout}>Logout</button>
+                    {showIdeasButton && <button onClick={viewIdeas}>View ideas</button>}
+                    <button onClick={logout} style={{ marginLeft: showIdeasButton ? '0.75rem' : 0 }}>Logout</button>
                 </p>
             </section>
         </div>
     );
 }
+

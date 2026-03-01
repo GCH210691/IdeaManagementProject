@@ -19,6 +19,21 @@ export function getAuthSession() {
     }
 }
 
+export function getAuthToken() {
+    return getAuthSession()?.token || '';
+}
+
+export function getAuthHeaders(extraHeaders = {}) {
+    const token = getAuthToken();
+    const headers = { ...extraHeaders };
+
+    if (token) {
+        headers.Authorization = `Bearer ${token}`;
+    }
+
+    return headers;
+}
+
 export function clearAuthSession() {
     localStorage.removeItem(AUTH_STORAGE_KEY);
 }
@@ -36,18 +51,7 @@ export function getDisplayName(user) {
 }
 
 export function roleToPath(role) {
-    switch (role) {
-        case 'ADMIN':
-            return '/role/admin';
-        case 'QA_COORDINATOR':
-            return '/role/qa-coordinator';
-        case 'QA_MANAGER':
-            return '/role/qa-manager';
-        case 'STAFF':
-            return '/role/staff';
-        default:
-            return '/login';
-    }
+    return role ? '/dashboard' : '/login';
 }
 
 export function roleToLabel(role) {
@@ -63,4 +67,12 @@ export function roleToLabel(role) {
         default:
             return 'User';
     }
+}
+
+export function canCreateIdeas(user) {
+    return user?.role === 'STAFF' || user?.role === 'QA_COORDINATOR';
+}
+
+export function canManageIdea(user, idea) {
+    return canCreateIdeas(user) && Number(user?.id) === Number(idea?.authorUserId);
 }
