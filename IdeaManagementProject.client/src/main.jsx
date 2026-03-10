@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import RegisterPage from './RegisterPage.jsx';
 import RoleLandingPage from './RoleLandingPage.jsx';
+import AdminDashboard from './AdminDashboard.jsx';
+import StaffDashboard from './StaffDashboard.jsx';
 
 const path = window.location.pathname.toLowerCase();
 
@@ -10,7 +12,13 @@ let Root = App;
 
 if (path === '/register') {
     Root = RegisterPage;
-} else if (path === '/role/admin') {
+}
+else if (path === '/admin/dashboard') {
+    Root = AdminDashboard;
+} else if (path === '/staff/dashboard') {
+    Root = StaffDashboard;
+}
+else if (path === '/role/admin') { //admin
     Root = () => <RoleLandingPage expectedRole="ADMIN" roleText="Admin" />;
 } else if (path === '/role/qa-coordinator') {
     Root = () => <RoleLandingPage expectedRole="QA_COORDINATOR" roleText="QA coordinator" />;

@@ -3,7 +3,7 @@
 "ServerUrl": "https://localhost:59420",
 "RedirectUrl": "",
 "LaunchCommand": "npm run dev",
-"WorkingDirectory": "C:\\Users\\Administrator\\source\\repos\\IdeaManagementProject\\IdeaManagementProject.Server\\..\\IdeaManagementProject.client",
+"WorkingDirectory": "C:\\Users\\admin\\OneDrive\\Documents\\GitHub\\IdeaManagementProject\\IdeaManagementProject.Server\\..\\IdeaManagementProject.client",
 "MaxTimeoutInSeconds": "120",
 "KeepRunning": "false"
 }

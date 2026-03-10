@@ -1,4 +1,5 @@
 export const AUTH_STORAGE_KEY = 'uims_auth_session';
+export const BASE_URL = 'http://localhost:5111';
 
 export function setAuthSession(token, user) {
     const payload = { token, user };
@@ -38,15 +39,15 @@ export function getDisplayName(user) {
 export function roleToPath(role) {
     switch (role) {
         case 'ADMIN':
-            return '/role/admin';
+            return '/admin';
         case 'QA_COORDINATOR':
-            return '/role/qa-coordinator';
+            return '/qa-coordinator';
         case 'QA_MANAGER':
-            return '/role/qa-manager';
+            return '/qa-manager';
         case 'STAFF':
-            return '/role/staff';
+            return '/staff';
         default:
-            return '/login';
+            return '/';
     }
 }
 

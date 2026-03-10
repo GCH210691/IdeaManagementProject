@@ -37,19 +37,19 @@ if (!fs.existsSync(certFilePath) || !fs.existsSync(keyFilePath)) {
 function resolveBackendTarget() {
     if (env.ASPNETCORE_URLS) {
         const urls = env.ASPNETCORE_URLS.split(';').map((u) => u.trim()).filter(Boolean);
-        const httpsUrl = urls.find((u) => u.startsWith('https://'));
+        const httpsUrl = urls.find((u) => u.startsWith('http://'));
         return httpsUrl || urls[0];
     }
 
     if (env.ASPNETCORE_HTTPS_PORT) {
-        return `https://localhost:${env.ASPNETCORE_HTTPS_PORT}`;
+        return `http://localhost:${env.ASPNETCORE_HTTPS_PORT}`;
     }
 
     if (env.ASPNETCORE_HTTP_PORT) {
         return `http://localhost:${env.ASPNETCORE_HTTP_PORT}`;
     }
 
-    return 'https://localhost:7115';
+    return 'http://localhost:7115';
 }
 
 const target = resolveBackendTarget();
@@ -62,16 +62,17 @@ export default defineConfig({
         }
     },
     server: {
+        host: '0.0.0.0',
         proxy: {
             '^/(api|weatherforecast)': {
                 target,
                 secure: false
             }
         },
-        port: parseInt(env.DEV_SERVER_PORT || '59420', 10),
-        https: {
-            key: fs.readFileSync(keyFilePath),
-            cert: fs.readFileSync(certFilePath)
-        }
+        port: parseInt(env.DEV_SERVER_PORT || '59420', 10)
+        //https: {
+        //    key: fs.readFileSync(keyFilePath),
+        //    cert: fs.readFileSync(certFilePath)
+        //}
     }
 });
