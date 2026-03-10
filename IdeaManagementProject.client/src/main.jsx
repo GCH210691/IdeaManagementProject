@@ -9,6 +9,8 @@ import IdeaDetailsPage from './IdeaDetailsPage.jsx';
 import EditIdeaPage from './EditIdeaPage.jsx';
 import RoleLandingPage from './RoleLandingPage.jsx';
 import AdminDashboard from './AdminDashboard.jsx';
+import AdminAccountsPage from './AdminAccountsPage.jsx';
+import AdminDepartmentsPage from './AdminDepartmentsPage.jsx';
 
 const path = window.location.pathname.toLowerCase();
 
@@ -20,6 +22,10 @@ if (path === '/register') {
     Root = Dashboard;
 } else if (path === '/admin/dashboard') {
     Root = AdminDashboard;
+} else if (path === '/admin/accounts') {
+    Root = AdminAccountsPage;
+} else if (path === '/admin/departments') {
+    Root = AdminDepartmentsPage;
 } else if (path === '/staff/dashboard') {
     Root = Dashboard;
 } else if (path === '/role/admin') {
@@ -49,4 +55,8 @@ createRoot(document.getElementById('root')).render(
         <Root />
     </StrictMode>
 );
+
+
+
+
 

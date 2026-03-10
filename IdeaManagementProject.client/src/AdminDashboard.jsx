@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+﻿// DEBUG_MARKER_123
+import { useEffect, useState } from 'react';
 import { clearAuthSession } from './authStorage';
 import {
     PieChart, Pie, Cell,
@@ -8,8 +9,7 @@ import {
 } from 'recharts';
 import { roleData, postFreq, categoryDist, onlineUsers, requireAuth } from './dashboardData';
 
-// ── STYLES ────────────────────────────────────────────────────────────
-
+// Styles
 function pageStyle() {
     return {
         display: 'flex',
@@ -172,14 +172,14 @@ function legendItemStyle() {
     return { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' };
 }
 
-// ── SIDEBAR ───────────────────────────────────────────────────────────
-
+// Sidebar
 function Sidebar({ active, setActive }) {
     const menuItems = [
-        { id: 'overview',    icon: '⬛', label: 'Tổng quan'  },
-        { id: 'users',       icon: '👥', label: 'Tài khoản'  },
-        { id: 'analytics',   icon: '📊', label: 'Phân tích'  },
-        { id: 'categories',  icon: '📁', label: 'Danh mục'   },
+        { id: 'overview', icon: '⬛', label: 'Overview' },
+        { id: 'users', icon: '👥', label: 'Accounts' },
+        { id: 'departments', icon: '🏢', label: 'Departments' },
+        { id: 'analytics', icon: '📊', label: 'Analytics' },
+        { id: 'categories', icon: '📂', label: 'Categories' },
     ];
 
     function handleLogout() {
@@ -189,7 +189,6 @@ function Sidebar({ active, setActive }) {
 
     return (
         <div style={sidebarStyle()}>
-            {/* Logo */}
             <div style={sidebarLogoAreaStyle()}>
                 <div style={logoBadgeStyle()}>SS</div>
                 <div>
@@ -198,25 +197,32 @@ function Sidebar({ active, setActive }) {
                 </div>
             </div>
 
-            {/* Nav */}
             <nav style={navStyle()}>
-                {menuItems.map(item => (
+                {menuItems.map((item) => (
                     <button
                         key={item.id}
                         style={navItemStyle(active === item.id)}
-                        onClick={() => setActive(item.id)}
-                    >
-                        <span style={{ fontSize: '16px' }}>{item.icon}</span>
+                        onClick={() => {
+                            if (item.id === 'users') {
+                                window.location.href = '/admin/accounts';
+                                return;
+                            }
+                            if (item.id === 'departments') {
+                                window.location.href = '/admin/departments';
+                                return;
+                            }
+                            setActive(item.id);
+                        }}>
+                        <span style={{ fontSize: '12px', fontWeight: 700 }}>{item.icon}</span>
                         {item.label}
                     </button>
                 ))}
             </nav>
 
-            {/* Footer */}
             <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#4ADE80' }} />
-                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px' }}>247 người online</span>
+                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px' }}>247 users online</span>
                 </div>
                 <button
                     onClick={handleLogout}
@@ -225,17 +231,15 @@ function Sidebar({ active, setActive }) {
                         borderRadius: '7px', color: 'rgba(255,255,255,0.4)',
                         fontSize: '12px', cursor: 'pointer', padding: '6px 12px',
                         width: '100%', fontFamily: 'inherit',
-                    }}
-                >
-                    Đăng xuất
+                    }}>
+                    Logout
                 </button>
             </div>
         </div>
     );
 }
 
-// ── KPI CARD ──────────────────────────────────────────────────────────
-
+// KPI Card
 function KpiCard({ icon, label, value, change }) {
     return (
         <div style={kpiCardStyle()}>
@@ -249,10 +253,7 @@ function KpiCard({ icon, label, value, change }) {
     );
 }
 
-// ── MAIN COMPONENT ────────────────────────────────────────────────────
-
-import { useState } from 'react';
-
+// Main component
 function App() {
     const [activeMenu, setActiveMenu] = useState('overview');
 
@@ -265,50 +266,45 @@ function App() {
             <Sidebar active={activeMenu} setActive={setActiveMenu} />
 
             <main style={mainStyle()}>
-
-                {/* Page header */}
                 <div style={pageHeaderStyle()}>
                     <div>
                         <h1 style={h1Style()}>Analytics Dashboard</h1>
-                        <p style={subStyle()}>Tổng quan toàn hệ thống – cập nhật thời gian thực</p>
+                        <p style={subStyle()}>System overview and real-time activity updates</p>
                     </div>
-                    <button style={exportBtnStyle()}>⬇ Xuất báo cáo</button>
+                    <button style={exportBtnStyle()}>Export report</button>
                 </div>
 
-                {/* KPI Cards */}
                 <div style={kpiGridStyle()}>
-                    <KpiCard icon="👥" label="Tổng tài khoản"   value="8,500" change="+3.2%" />
-                    <KpiCard icon="💡" label="Tổng ý tưởng"     value="1,250" change="+8.1%" />
-                    <KpiCard icon="🟢" label="Đang online"       value="247"               />
-                    <KpiCard icon="💬" label="Bình luận hôm nay" value="482"   change="+12%" />
+                    <KpiCard icon="👥" label="Total accounts" value="8,500" change="+3.2%" />
+                    <KpiCard icon="💡" label="Total ideas" value="1,250" change="+8.1%" />
+                    <KpiCard icon="🟢" label="Online now" value="247" />
+                    <KpiCard icon="💬" label="Comments today" value="482" change="+12%" />
                 </div>
 
-                {/* Row 1: Pie + Bar */}
                 <div style={twoColStyle()}>
-
-                    {/* Role distribution */}
                     <div style={chartCardStyle()}>
-                        <h2 style={chartTitleStyle()}>Phân bổ Role tài khoản</h2>
+                        <h2 style={chartTitleStyle()}>Role distribution</h2>
                         <div style={pieRowStyle()}>
                             <ResponsiveContainer width="50%" height={160}>
                                 <PieChart>
                                     <Pie
                                         data={roleData}
-                                        cx="50%" cy="50%"
-                                        innerRadius={45} outerRadius={70}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={45}
+                                        outerRadius={70}
                                         paddingAngle={3}
-                                        dataKey="value"
-                                    >
+                                        dataKey="value">
                                         {roleData.map((entry, i) => (
                                             <Cell key={i} fill={entry.color} />
                                         ))}
                                     </Pie>
-                                    <Tooltip formatter={v => v.toLocaleString()} />
+                                    <Tooltip formatter={(v) => v.toLocaleString()} />
                                 </PieChart>
                             </ResponsiveContainer>
 
                             <div style={{ flex: 1 }}>
-                                {roleData.map(r => (
+                                {roleData.map((r) => (
                                     <div key={r.name} style={legendItemStyle()}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                             <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: r.color, flexShrink: 0, display: 'inline-block' }} />
@@ -323,9 +319,8 @@ function App() {
                         </div>
                     </div>
 
-                    {/* Ideas by category */}
                     <div style={chartCardStyle()}>
-                        <h2 style={chartTitleStyle()}>Ý tưởng theo Danh mục</h2>
+                        <h2 style={chartTitleStyle()}>Ideas by category</h2>
                         <ResponsiveContainer width="100%" height={160}>
                             <BarChart data={categoryDist} barSize={20}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
@@ -338,12 +333,9 @@ function App() {
                     </div>
                 </div>
 
-                {/* Row 2: Line charts */}
                 <div style={twoColStyle()}>
-
-                    {/* Post & comment frequency */}
                     <div style={chartCardStyle()}>
-                        <h2 style={chartTitleStyle()}>Tần suất đăng bài &amp; bình luận</h2>
+                        <h2 style={chartTitleStyle()}>Post and comment frequency</h2>
                         <ResponsiveContainer width="100%" height={180}>
                             <LineChart data={postFreq}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
@@ -351,15 +343,14 @@ function App() {
                                 <YAxis tick={{ fontSize: 10 }} />
                                 <Tooltip />
                                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                                <Line type="monotone" dataKey="posts"    stroke="#3B82F6" strokeWidth={2.5} dot={{ r: 3 }} name="Bài đăng"   />
-                                <Line type="monotone" dataKey="comments" stroke="#8B5CF6" strokeWidth={2.5} dot={{ r: 3 }} name="Bình luận"  />
+                                <Line type="monotone" dataKey="posts" stroke="#3B82F6" strokeWidth={2.5} dot={{ r: 3 }} name="Posts" />
+                                <Line type="monotone" dataKey="comments" stroke="#8B5CF6" strokeWidth={2.5} dot={{ r: 3 }} name="Comments" />
                             </LineChart>
                         </ResponsiveContainer>
                     </div>
 
-                    {/* Online users today */}
                     <div style={chartCardStyle()}>
-                        <h2 style={chartTitleStyle()}>Người dùng online hôm nay</h2>
+                        <h2 style={chartTitleStyle()}>Users online today</h2>
                         <ResponsiveContainer width="100%" height={180}>
                             <LineChart data={onlineUsers}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
@@ -371,12 +362,14 @@ function App() {
                         </ResponsiveContainer>
                     </div>
                 </div>
-
             </main>
         </div>
     );
 }
 
 export default App;
+
+
+
 
 
