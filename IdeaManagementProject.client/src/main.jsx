@@ -1,3 +1,4 @@
+﻿import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import RegisterPage from './RegisterPage.jsx';
@@ -6,6 +7,8 @@ import IdeaListPage from './IdeaListPage.jsx';
 import CreateIdeaPage from './CreateIdeaPage.jsx';
 import IdeaDetailsPage from './IdeaDetailsPage.jsx';
 import EditIdeaPage from './EditIdeaPage.jsx';
+import RoleLandingPage from './RoleLandingPage.jsx';
+import AdminDashboard from './AdminDashboard.jsx';
 
 const path = window.location.pathname.toLowerCase();
 
@@ -15,6 +18,18 @@ if (path === '/register') {
     Root = RegisterPage;
 } else if (path === '/dashboard') {
     Root = Dashboard;
+} else if (path === '/admin/dashboard') {
+    Root = AdminDashboard;
+} else if (path === '/staff/dashboard') {
+    Root = Dashboard;
+} else if (path === '/role/admin') {
+    Root = () => <RoleLandingPage expectedRole="ADMIN" roleText="Admin" />;
+} else if (path === '/role/qa-coordinator') {
+    Root = () => <RoleLandingPage expectedRole="QA_COORDINATOR" roleText="QA coordinator" />;
+} else if (path === '/role/qa-manager') {
+    Root = () => <RoleLandingPage expectedRole="QA_MANAGER" roleText="QA manager" />;
+} else if (path === '/role/staff') {
+    Root = () => <RoleLandingPage expectedRole="STAFF" roleText="Staff" />;
 } else if (path === '/ideas') {
     Root = IdeaListPage;
 } else if (path === '/ideas/create') {
@@ -29,4 +44,9 @@ if (path === '/register') {
     window.location.replace('/login');
 }
 
-createRoot(document.getElementById('root')).render(<Root />);
+createRoot(document.getElementById('root')).render(
+    <StrictMode>
+        <Root />
+    </StrictMode>
+);
+

@@ -29,8 +29,9 @@ export default function IdeaDetailsPage() {
     const session = useMemo(() => getAuthSession(), []);
     const user = session?.user;
     const ideaId = useMemo(() => getIdeaIdFromPath(), []);
+    const invalidIdeaId = !ideaId;
     const [idea, setIdea] = useState(null);
-    const [message, setMessage] = useState('Loading idea...');
+    const [message, setMessage] = useState(invalidIdeaId ? 'Invalid idea id.' : 'Loading idea...');
 
     useEffect(() => {
         if (!session?.token || !user) {
@@ -38,8 +39,7 @@ export default function IdeaDetailsPage() {
             return;
         }
 
-        if (!ideaId) {
-            setMessage('Invalid idea id.');
+        if (invalidIdeaId) {
             return;
         }
 
@@ -84,7 +84,7 @@ export default function IdeaDetailsPage() {
         return () => {
             active = false;
         };
-    }, [ideaId, session, user]);
+    }, [ideaId, invalidIdeaId, session, user]);
 
     function goList() {
         window.location.href = '/ideas';
@@ -128,3 +128,6 @@ export default function IdeaDetailsPage() {
         </div>
     );
 }
+
+
+

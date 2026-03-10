@@ -1,4 +1,6 @@
 export const AUTH_STORAGE_KEY = 'uims_auth_session';
+const envBaseUrl = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_API_BASE_URL : '';
+export const BASE_URL = (envBaseUrl || '').replace(/\/+$/, '');
 
 export function setAuthSession(token, user) {
     const payload = { token, user };
@@ -51,7 +53,18 @@ export function getDisplayName(user) {
 }
 
 export function roleToPath(role) {
-    return role ? '/dashboard' : '/login';
+    switch (role) {
+        case 'ADMIN':
+            return '/admin/dashboard';
+        case 'QA_COORDINATOR':
+            return '/role/qa-coordinator';
+        case 'QA_MANAGER':
+            return '/role/qa-manager';
+        case 'STAFF':
+            return '/staff/dashboard';
+        default:
+            return '/dashboard';
+    }
 }
 
 export function roleToLabel(role) {
@@ -76,3 +89,4 @@ export function canCreateIdeas(user) {
 export function canManageIdea(user, idea) {
     return canCreateIdeas(user) && Number(user?.id) === Number(idea?.authorUserId);
 }
+
