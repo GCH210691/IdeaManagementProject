@@ -1,4 +1,1 @@
-C:\Users\Administrator\source\repos\ReactApp2test\reactapp2test.client\obj\Debug\IdeaManagementProject.Client.esproj.CoreCompileInputs.cache
-C:\Users\Administrator\source\repos\ReactApp2test\IdeaManagementProject.client\obj\Debug\IdeaManagementProject.Client.esproj.CoreCompileInputs.cache
-C:\Users\Administrator\source\repos\IdeaManagementProject\IdeaManagementProject.client\obj\Debug\IdeaManagementProject.Client.esproj.CoreCompileInputs.cache
 C:\Users\admin\OneDrive\Documents\GitHub\IdeaManagementProject\IdeaManagementProject.client\obj\Debug\IdeaManagementProject.Client.esproj.CoreCompileInputs.cache
