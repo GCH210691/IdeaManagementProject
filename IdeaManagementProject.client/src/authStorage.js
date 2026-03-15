@@ -57,9 +57,9 @@ export function roleToPath(role) {
         case 'ADMIN':
             return '/admin/dashboard';
         case 'QA_COORDINATOR':
-            return '/role/qa-coordinator';
+            return '/dashboard';
         case 'QA_MANAGER':
-            return '/role/qa-manager';
+            return '/dashboard';
         case 'STAFF':
             return '/staff/dashboard';
         default:
@@ -88,5 +88,13 @@ export function canCreateIdeas(user) {
 
 export function canManageIdea(user, idea) {
     return canCreateIdeas(user) && Number(user?.id) === Number(idea?.authorUserId);
+}
+
+export function isDashboardRole(user) {
+    return user?.role === 'STAFF' || user?.role === 'QA_COORDINATOR' || user?.role === 'QA_MANAGER';
+}
+
+export function canViewCategoryList(user) {
+    return user?.role === 'QA_MANAGER';
 }
 

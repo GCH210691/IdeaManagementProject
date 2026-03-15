@@ -10,3 +10,6 @@ obj/
 *.user
 *.suo
 *.cache
+
+.dotnet/
+.tmp-category-build/

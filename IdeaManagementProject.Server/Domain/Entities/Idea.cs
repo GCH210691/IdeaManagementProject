@@ -13,4 +13,5 @@ public class Idea
 
     public User AuthorUser { get; set; } = null!;
     public Department Department { get; set; } = null!;
+    public ICollection<IdeaCategory> IdeaCategories { get; set; } = new List<IdeaCategory>();
 }

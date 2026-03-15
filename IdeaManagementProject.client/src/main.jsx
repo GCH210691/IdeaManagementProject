@@ -1,4 +1,4 @@
-﻿import { StrictMode } from 'react';
+import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import RegisterPage from './RegisterPage.jsx';
@@ -11,6 +11,10 @@ import RoleLandingPage from './RoleLandingPage.jsx';
 import AdminDashboard from './AdminDashboard.jsx';
 import AdminAccountsPage from './AdminAccountsPage.jsx';
 import AdminDepartmentsPage from './AdminDepartmentsPage.jsx';
+import MyIdeasPage from './MyIdeasPage.jsx';
+import DepartmentIdeasPage from './DepartmentIdeasPage.jsx';
+import CategoryListPage from './CategoryListPage.jsx';
+import CategoryEditPage from './CategoryEditPage.jsx';
 
 const path = window.location.pathname.toLowerCase();
 
@@ -28,6 +32,14 @@ if (path === '/register') {
     Root = AdminDepartmentsPage;
 } else if (path === '/staff/dashboard') {
     Root = Dashboard;
+} else if (path === '/staff/my-ideas') {
+    Root = MyIdeasPage;
+} else if (path === '/staff/departments') {
+    Root = DepartmentIdeasPage;
+} else if (path === '/qa-manager/categories') {
+    Root = CategoryListPage;
+} else if (/^\/qa-manager\/categories\/\d+\/edit$/.test(path)) {
+    Root = CategoryEditPage;
 } else if (path === '/role/admin') {
     Root = () => <RoleLandingPage expectedRole="ADMIN" roleText="Admin" />;
 } else if (path === '/role/qa-coordinator') {
@@ -53,10 +65,5 @@ if (path === '/register') {
 createRoot(document.getElementById('root')).render(
     <StrictMode>
         <Root />
-    </StrictMode>
+    </StrictMode>,
 );
-
-
-
-
-

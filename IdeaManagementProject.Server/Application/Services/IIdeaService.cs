@@ -9,9 +9,9 @@ public interface IIdeaService
     Task<IdeaMutationStatus> DeleteIdeaAsync(DeleteIdeaInput input, CancellationToken cancellationToken = default);
 }
 
-public sealed record CreateIdeaInput(int UserId, string Title, string Content, bool IsAnonymous);
+public sealed record CreateIdeaInput(int UserId, string Title, string Content, bool IsAnonymous, IReadOnlyList<int> CategoryIds);
 
-public sealed record UpdateIdeaInput(int IdeaId, int UserId, string Title, string Content, bool IsAnonymous);
+public sealed record UpdateIdeaInput(int IdeaId, int UserId, string Title, string Content, bool IsAnonymous, IReadOnlyList<int> CategoryIds);
 
 public sealed record DeleteIdeaInput(int IdeaId, int UserId);
 
@@ -34,4 +34,6 @@ public sealed record IdeaView(
     string DepartmentName,
     bool IsAnonymous,
     int ViewCount,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    IReadOnlyList<string> Categories,
+    IReadOnlyList<int> CategoryIds);

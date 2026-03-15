@@ -1,23 +1,74 @@
 import { useEffect, useMemo, useState } from 'react';
 import { canCreateIdeas, getAuthHeaders, getAuthSession } from './authStorage';
+import StaffShell from './StaffShell';
 
-function pageStyle() {
+function pageHeaderStyle() {
     return {
-        minHeight: '100vh',
-        padding: '2rem',
-        boxSizing: 'border-box',
-        fontFamily: 'Arial, sans-serif'
+        marginBottom: '1rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '1rem',
+        flexWrap: 'wrap',
     };
+}
+
+function h1Style() {
+    return { margin: '0 0 0.25rem 0', fontSize: '1.5rem', fontWeight: 900, color: '#111827' };
+}
+
+function subStyle() {
+    return { margin: 0, fontSize: '13px', color: '#6B7280' };
 }
 
 function cardStyle() {
     return {
-        maxWidth: '700px',
-        margin: '0 auto',
-        border: '1px solid #d5d5d5',
-        borderRadius: '8px',
-        padding: '1.4rem'
+        maxWidth: '760px',
+        background: '#fff',
+        borderRadius: '12px',
+        border: '1px solid #F3F4F6',
+        padding: '1.4rem',
     };
+}
+
+function inputStyle(multiline = false) {
+    return {
+        width: '100%',
+        minHeight: multiline ? '180px' : undefined,
+        boxSizing: 'border-box',
+        padding: '0.7rem 0.8rem',
+        borderRadius: '10px',
+        border: '1px solid #D1D5DB',
+        fontFamily: 'inherit',
+        fontSize: '13px',
+    };
+}
+
+function multiSelectStyle() {
+    return {
+        ...inputStyle(),
+        minHeight: '160px',
+    };
+}
+
+function actionButtonStyle(primary = false) {
+    return {
+        border: 'none',
+        borderRadius: '8px',
+        padding: '0.55rem 0.9rem',
+        fontSize: '12px',
+        fontWeight: 700,
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        color: primary ? '#fff' : '#111827',
+        background: primary ? '#2563EB' : '#E5E7EB',
+    };
+}
+
+function toSelectedIds(options) {
+    return Array.from(options)
+        .filter((option) => option.selected)
+        .map((option) => Number(option.value));
 }
 
 export default function CreateIdeaPage() {
@@ -26,6 +77,8 @@ export default function CreateIdeaPage() {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [isAnonymous, setIsAnonymous] = useState(false);
+    const [categoryOptions, setCategoryOptions] = useState([]);
+    const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -37,11 +90,48 @@ export default function CreateIdeaPage() {
 
         if (!canCreateIdeas(user)) {
             window.location.href = '/dashboard';
+            return;
         }
+
+        let active = true;
+
+        async function loadCategories() {
+            try {
+                const response = await fetch('/api/categories', {
+                    headers: getAuthHeaders({ Accept: 'application/json' }),
+                });
+
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                if (!response.ok) {
+                    setMessage(`Unable to load categories: ${response.status}`);
+                    return;
+                }
+
+                const data = await response.json();
+                if (!active) {
+                    return;
+                }
+
+                setCategoryOptions(Array.isArray(data) ? data : []);
+            } catch (error) {
+                const details = error instanceof Error ? error.message : String(error);
+                setMessage('Load error: ' + details);
+            }
+        }
+
+        loadCategories();
+
+        return () => {
+            active = false;
+        };
     }, [session, user]);
 
-    async function submit(e) {
-        e.preventDefault();
+    async function submit(event) {
+        event.preventDefault();
 
         if (!title.trim() || !content.trim()) {
             setMessage('Title and content are required.');
@@ -56,13 +146,14 @@ export default function CreateIdeaPage() {
                 method: 'POST',
                 headers: getAuthHeaders({
                     'Content-Type': 'application/json',
-                    Accept: 'application/json'
+                    Accept: 'application/json',
                 }),
                 body: JSON.stringify({
                     title: title.trim(),
                     content: content.trim(),
-                    isAnonymous
-                })
+                    isAnonymous,
+                    categoryIds: selectedCategoryIds,
+                }),
             });
 
             if (response.status === 401) {
@@ -95,63 +186,88 @@ export default function CreateIdeaPage() {
         }
     }
 
-    function goList() {
-        window.location.href = '/ideas';
-    }
-
     if (!session?.token || !user || !canCreateIdeas(user)) {
         return null;
     }
 
     return (
-        <div style={pageStyle()}>
+        <StaffShell activeMenu="create" footerText="Create a new idea">
+            <div style={pageHeaderStyle()}>
+                <div>
+                    <h1 style={h1Style()}>Create Idea</h1>
+                    <p style={subStyle()}>Submit a new idea to the system.</p>
+                </div>
+            </div>
+
             <section style={cardStyle()}>
-                <h1 style={{ marginTop: 0 }}>Create Idea</h1>
                 <form onSubmit={submit}>
                     <p>
                         <label>
-                            Title
-                            <br />
+                            <span style={{ display: 'block', marginBottom: '0.45rem', fontSize: '12px', fontWeight: 700, color: '#6B7280' }}>Title</span>
                             <input
-                                style={{ width: '100%', boxSizing: 'border-box', padding: '0.45rem' }}
+                                style={inputStyle()}
                                 value={title}
-                                onChange={(e) => setTitle(e.target.value)}
+                                onChange={(event) => setTitle(event.target.value)}
                             />
                         </label>
                     </p>
 
                     <p>
                         <label>
-                            Content
-                            <br />
+                            <span style={{ display: 'block', marginBottom: '0.45rem', fontSize: '12px', fontWeight: 700, color: '#6B7280' }}>Content</span>
                             <textarea
-                                style={{ width: '100%', minHeight: '180px', boxSizing: 'border-box', padding: '0.45rem' }}
+                                style={inputStyle(true)}
                                 value={content}
-                                onChange={(e) => setContent(e.target.value)}
+                                onChange={(event) => setContent(event.target.value)}
                             />
                         </label>
                     </p>
 
                     <p>
                         <label>
+                            <span style={{ display: 'block', marginBottom: '0.45rem', fontSize: '12px', fontWeight: 700, color: '#6B7280' }}>Categories</span>
+                            <select
+                                multiple
+                                value={selectedCategoryIds.map(String)}
+                                onChange={(event) => setSelectedCategoryIds(toSelectedIds(event.target.options))}
+                                style={multiSelectStyle()}>
+                                {categoryOptions.map((category) => (
+                                    <option key={category.categoryId} value={category.categoryId}>{category.name}</option>
+                                ))}
+                            </select>
+                        </label>
+                        <span style={{ display: 'block', marginTop: '0.35rem', fontSize: '12px', color: '#6B7280' }}>
+                            Hold Ctrl or Command to select multiple categories.
+                        </span>
+                    </p>
+
+                    <p>
+                        <label style={{ fontSize: '13px', color: '#374151' }}>
                             <input
                                 type="checkbox"
                                 checked={isAnonymous}
-                                onChange={(e) => setIsAnonymous(e.target.checked)}
+                                onChange={(event) => setIsAnonymous(event.target.checked)}
                             />
                             {' '}Submit anonymously
                         </label>
                     </p>
 
-                    <p style={{ marginBottom: 0 }}>
-                        <button type="submit" disabled={loading}>{loading ? 'Saving...' : 'Create idea'}</button>
-                        <button type="button" onClick={goList} style={{ marginLeft: '0.75rem' }}>Back to idea list</button>
+                    <p style={{ marginBottom: 0, display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                        <button type="submit" disabled={loading} style={actionButtonStyle(true)}>
+                            {loading ? 'Saving...' : 'Create idea'}
+                        </button>
+                        <button type="button" onClick={() => { window.location.href = '/ideas'; }} style={actionButtonStyle()}>
+                            Back to idea list
+                        </button>
                     </p>
                 </form>
 
-                {message && <p style={{ color: message.toLowerCase().includes('error') || message.toLowerCase().includes('failed') || message.toLowerCase().includes('invalid') || message.toLowerCase().includes('not allowed') ? '#b00020' : '#555' }}>{message}</p>}
+                {message && (
+                    <p style={{ color: message.toLowerCase().includes('error') || message.toLowerCase().includes('failed') || message.toLowerCase().includes('invalid') || message.toLowerCase().includes('not allowed') ? '#B91C1C' : '#555', marginTop: '1rem' }}>
+                        {message}
+                    </p>
+                )}
             </section>
-        </div>
+        </StaffShell>
     );
 }
-

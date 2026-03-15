@@ -14,6 +14,8 @@ public class AppDbContext : DbContext
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<Idea> Ideas => Set<Idea>();
+    public DbSet<Category> Categories => Set<Category>();
+    public DbSet<IdeaCategory> IdeaCategories => Set<IdeaCategory>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -148,6 +150,41 @@ public class AppDbContext : DbContext
                 .WithMany(x => x.Ideas)
                 .HasForeignKey(x => x.DepartmentId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Category>(entity =>
+        {
+            entity.ToTable("Category");
+
+            entity.HasKey(x => x.CategoryId);
+            entity.Property(x => x.CategoryId).HasColumnName("category_id");
+
+            entity.Property(x => x.Name)
+                .HasColumnName("name")
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.HasIndex(x => x.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<IdeaCategory>(entity =>
+        {
+            entity.ToTable("IdeaCategory");
+
+            entity.HasKey(x => new { x.IdeaId, x.CategoryId });
+
+            entity.Property(x => x.IdeaId).HasColumnName("idea_id");
+            entity.Property(x => x.CategoryId).HasColumnName("category_id");
+
+            entity.HasOne(x => x.Idea)
+                .WithMany(x => x.IdeaCategories)
+                .HasForeignKey(x => x.IdeaId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.Category)
+                .WithMany(x => x.IdeaCategories)
+                .HasForeignKey(x => x.CategoryId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

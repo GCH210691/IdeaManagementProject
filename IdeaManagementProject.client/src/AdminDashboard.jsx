@@ -1,96 +1,39 @@
-﻿// DEBUG_MARKER_123
 import { useEffect, useState } from 'react';
-import { clearAuthSession } from './authStorage';
 import {
     PieChart, Pie, Cell,
     LineChart, Line,
     BarChart, Bar,
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
+import AdminShell from './AdminShell';
 import { roleData, postFreq, categoryDist, onlineUsers, requireAuth } from './dashboardData';
-
-// Styles
-function pageStyle() {
-    return {
-        display: 'flex',
-        minHeight: '100vh',
-        fontFamily: "'DM Sans', 'Segoe UI', system-ui, sans-serif",
-        background: '#F9FAFB',
-    };
-}
-
-function sidebarStyle() {
-    return {
-        width: '224px',
-        minHeight: '100vh',
-        background: '#0F1C33',
-        display: 'flex',
-        flexDirection: 'column',
-        flexShrink: 0,
-    };
-}
-
-function sidebarLogoAreaStyle() {
-    return {
-        padding: '1.5rem',
-        borderBottom: '1px solid rgba(255,255,255,0.1)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.75rem',
-    };
-}
-
-function logoBadgeStyle() {
-    return {
-        width: '32px', height: '32px',
-        borderRadius: '8px',
-        background: 'linear-gradient(135deg, #2563EB, #60A5FA)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: '#fff', fontWeight: 900, fontSize: '12px', flexShrink: 0,
-    };
-}
-
-function navStyle() {
-    return { flex: 1, padding: '1rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '2px' };
-}
-
-function navItemStyle(active) {
-    return {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.75rem',
-        padding: '0.6rem 0.75rem',
-        borderRadius: '8px',
-        fontSize: '14px',
-        fontWeight: 500,
-        cursor: 'pointer',
-        border: 'none',
-        width: '100%',
-        textAlign: 'left',
-        transition: 'background 0.15s, color 0.15s',
-        background: active ? '#3B82F6' : 'transparent',
-        color: active ? '#fff' : 'rgba(255,255,255,0.5)',
-        fontFamily: 'inherit',
-    };
-}
-
-function mainStyle() {
-    return { flex: 1, padding: '2rem', overflowY: 'auto' };
-}
 
 function pageHeaderStyle() {
     return {
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
         marginBottom: '2rem',
+        gap: '1rem',
+        flexWrap: 'wrap',
     };
 }
 
 function h1Style() {
-    return { margin: '0 0 0.25rem 0', fontSize: '1.5rem', fontWeight: 900, color: '#111827' };
+    return {
+        margin: '0 0 0.25rem 0',
+        fontSize: '1.5rem',
+        fontWeight: 900,
+        color: '#111827',
+    };
 }
 
 function subStyle() {
-    return { margin: 0, fontSize: '13px', color: '#6B7280' };
+    return {
+        margin: 0,
+        fontSize: '13px',
+        color: '#6B7280',
+    };
 }
 
 function exportBtnStyle() {
@@ -104,9 +47,6 @@ function exportBtnStyle() {
         fontWeight: 700,
         cursor: 'pointer',
         fontFamily: 'inherit',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
     };
 }
 
@@ -130,14 +70,22 @@ function kpiCardStyle() {
 }
 
 function kpiTopRowStyle() {
-    return { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' };
+    return {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: '1rem',
+    };
 }
 
 function changeBadgeStyle() {
     return {
-        fontSize: '11px', fontWeight: 700,
-        color: '#059669', background: '#ECFDF5',
-        padding: '2px 8px', borderRadius: '999px',
+        fontSize: '11px',
+        fontWeight: 700,
+        color: '#059669',
+        background: '#ECFDF5',
+        padding: '2px 8px',
+        borderRadius: '999px',
     };
 }
 
@@ -161,90 +109,36 @@ function chartCardStyle() {
 }
 
 function chartTitleStyle() {
-    return { margin: '0 0 1rem 0', fontSize: '13px', fontWeight: 700, color: '#1F2937' };
+    return {
+        margin: '0 0 1rem 0',
+        fontSize: '13px',
+        fontWeight: 700,
+        color: '#1F2937',
+    };
 }
 
 function pieRowStyle() {
-    return { display: 'flex', alignItems: 'center', gap: '1rem' };
+    return {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '1rem',
+    };
 }
 
 function legendItemStyle() {
-    return { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' };
+    return {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: '6px',
+    };
 }
 
-// Sidebar
-function Sidebar({ active, setActive }) {
-    const menuItems = [
-        { id: 'overview', icon: '⬛', label: 'Overview' },
-        { id: 'users', icon: '👥', label: 'Accounts' },
-        { id: 'departments', icon: '🏢', label: 'Departments' },
-        { id: 'analytics', icon: '📊', label: 'Analytics' },
-        { id: 'categories', icon: '📂', label: 'Categories' },
-    ];
-
-    function handleLogout() {
-        clearAuthSession();
-        window.location.href = '/login';
-    }
-
-    return (
-        <div style={sidebarStyle()}>
-            <div style={sidebarLogoAreaStyle()}>
-                <div style={logoBadgeStyle()}>SS</div>
-                <div>
-                    <div style={{ color: '#fff', fontWeight: 900, fontSize: '14px', lineHeight: 1.2 }}>IdeaHub</div>
-                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px' }}>Admin</div>
-                </div>
-            </div>
-
-            <nav style={navStyle()}>
-                {menuItems.map((item) => (
-                    <button
-                        key={item.id}
-                        style={navItemStyle(active === item.id)}
-                        onClick={() => {
-                            if (item.id === 'users') {
-                                window.location.href = '/admin/accounts';
-                                return;
-                            }
-                            if (item.id === 'departments') {
-                                window.location.href = '/admin/departments';
-                                return;
-                            }
-                            setActive(item.id);
-                        }}>
-                        <span style={{ fontSize: '12px', fontWeight: 700 }}>{item.icon}</span>
-                        {item.label}
-                    </button>
-                ))}
-            </nav>
-
-            <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#4ADE80' }} />
-                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px' }}>247 users online</span>
-                </div>
-                <button
-                    onClick={handleLogout}
-                    style={{
-                        background: 'none', border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: '7px', color: 'rgba(255,255,255,0.4)',
-                        fontSize: '12px', cursor: 'pointer', padding: '6px 12px',
-                        width: '100%', fontFamily: 'inherit',
-                    }}>
-                    Logout
-                </button>
-            </div>
-        </div>
-    );
-}
-
-// KPI Card
 function KpiCard({ icon, label, value, change }) {
     return (
         <div style={kpiCardStyle()}>
             <div style={kpiTopRowStyle()}>
-                <span style={{ fontSize: '24px' }}>{icon}</span>
+                <span style={{ fontSize: '15px', fontWeight: 800, color: '#1D4ED8' }}>{icon}</span>
                 {change && <span style={changeBadgeStyle()}>{change}</span>}
             </div>
             <div style={{ fontSize: '1.875rem', fontWeight: 900, color: '#111827' }}>{value}</div>
@@ -253,8 +147,7 @@ function KpiCard({ icon, label, value, change }) {
     );
 }
 
-// Main component
-function App() {
+export default function AdminDashboard() {
     const [activeMenu, setActiveMenu] = useState('overview');
 
     useEffect(() => {
@@ -262,114 +155,118 @@ function App() {
     }, []);
 
     return (
-        <div style={pageStyle()}>
-            <Sidebar active={activeMenu} setActive={setActiveMenu} />
+        <AdminShell
+            activeMenu={activeMenu}
+            onMenuSelect={(itemId) => {
+                if (itemId === 'users') {
+                    window.location.href = '/admin/accounts';
+                    return true;
+                }
 
-            <main style={mainStyle()}>
-                <div style={pageHeaderStyle()}>
-                    <div>
-                        <h1 style={h1Style()}>Analytics Dashboard</h1>
-                        <p style={subStyle()}>System overview and real-time activity updates</p>
-                    </div>
-                    <button style={exportBtnStyle()}>Export report</button>
+                if (itemId === 'departments') {
+                    window.location.href = '/admin/departments';
+                    return true;
+                }
+
+                setActiveMenu(itemId);
+                return true;
+            }}>
+            <div style={pageHeaderStyle()}>
+                <div>
+                    <h1 style={h1Style()}>Analytics Dashboard</h1>
+                    <p style={subStyle()}>System overview and real-time activity updates</p>
                 </div>
+                <button style={exportBtnStyle()}>Export report</button>
+            </div>
 
-                <div style={kpiGridStyle()}>
-                    <KpiCard icon="👥" label="Total accounts" value="8,500" change="+3.2%" />
-                    <KpiCard icon="💡" label="Total ideas" value="1,250" change="+8.1%" />
-                    <KpiCard icon="🟢" label="Online now" value="247" />
-                    <KpiCard icon="💬" label="Comments today" value="482" change="+12%" />
-                </div>
+            <div style={kpiGridStyle()}>
+                <KpiCard icon="AC" label="Total accounts" value="8,500" change="+3.2%" />
+                <KpiCard icon="ID" label="Total ideas" value="1,250" change="+8.1%" />
+                <KpiCard icon="ON" label="Online now" value="247" />
+                <KpiCard icon="CM" label="Comments today" value="482" change="+12%" />
+            </div>
 
-                <div style={twoColStyle()}>
-                    <div style={chartCardStyle()}>
-                        <h2 style={chartTitleStyle()}>Role distribution</h2>
-                        <div style={pieRowStyle()}>
-                            <ResponsiveContainer width="50%" height={160}>
-                                <PieChart>
-                                    <Pie
-                                        data={roleData}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={45}
-                                        outerRadius={70}
-                                        paddingAngle={3}
-                                        dataKey="value">
-                                        {roleData.map((entry, i) => (
-                                            <Cell key={i} fill={entry.color} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip formatter={(v) => v.toLocaleString()} />
-                                </PieChart>
-                            </ResponsiveContainer>
+            <div style={twoColStyle()}>
+                <div style={chartCardStyle()}>
+                    <h2 style={chartTitleStyle()}>Role distribution</h2>
+                    <div style={pieRowStyle()}>
+                        <ResponsiveContainer width="50%" height={160}>
+                            <PieChart>
+                                <Pie
+                                    data={roleData}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={45}
+                                    outerRadius={70}
+                                    paddingAngle={3}
+                                    dataKey="value">
+                                    {roleData.map((entry, index) => (
+                                        <Cell key={index} fill={entry.color} />
+                                    ))}
+                                </Pie>
+                                <Tooltip formatter={(value) => value.toLocaleString()} />
+                            </PieChart>
+                        </ResponsiveContainer>
 
-                            <div style={{ flex: 1 }}>
-                                {roleData.map((r) => (
-                                    <div key={r.name} style={legendItemStyle()}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: r.color, flexShrink: 0, display: 'inline-block' }} />
-                                            <span style={{ fontSize: '12px', color: '#4B5563' }}>{r.name}</span>
-                                        </div>
-                                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#111827' }}>
-                                            {r.value.toLocaleString()}
-                                        </span>
+                        <div style={{ flex: 1 }}>
+                            {roleData.map((row) => (
+                                <div key={row.name} style={legendItemStyle()}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: row.color, flexShrink: 0, display: 'inline-block' }} />
+                                        <span style={{ fontSize: '12px', color: '#4B5563' }}>{row.name}</span>
                                     </div>
-                                ))}
-                            </div>
+                                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#111827' }}>
+                                        {row.value.toLocaleString()}
+                                    </span>
+                                </div>
+                            ))}
                         </div>
                     </div>
-
-                    <div style={chartCardStyle()}>
-                        <h2 style={chartTitleStyle()}>Ideas by category</h2>
-                        <ResponsiveContainer width="100%" height={160}>
-                            <BarChart data={categoryDist} barSize={20}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
-                                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                                <YAxis tick={{ fontSize: 10 }} />
-                                <Tooltip />
-                                <Bar dataKey="ideas" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
                 </div>
 
-                <div style={twoColStyle()}>
-                    <div style={chartCardStyle()}>
-                        <h2 style={chartTitleStyle()}>Post and comment frequency</h2>
-                        <ResponsiveContainer width="100%" height={180}>
-                            <LineChart data={postFreq}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
-                                <XAxis dataKey="month" tick={{ fontSize: 10 }} />
-                                <YAxis tick={{ fontSize: 10 }} />
-                                <Tooltip />
-                                <Legend wrapperStyle={{ fontSize: 11 }} />
-                                <Line type="monotone" dataKey="posts" stroke="#3B82F6" strokeWidth={2.5} dot={{ r: 3 }} name="Posts" />
-                                <Line type="monotone" dataKey="comments" stroke="#8B5CF6" strokeWidth={2.5} dot={{ r: 3 }} name="Comments" />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
-
-                    <div style={chartCardStyle()}>
-                        <h2 style={chartTitleStyle()}>Users online today</h2>
-                        <ResponsiveContainer width="100%" height={180}>
-                            <LineChart data={onlineUsers}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
-                                <XAxis dataKey="time" tick={{ fontSize: 10 }} />
-                                <YAxis tick={{ fontSize: 10 }} />
-                                <Tooltip />
-                                <Line type="monotone" dataKey="count" stroke="#10B981" strokeWidth={2.5} dot={{ r: 3 }} name="Online" />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
+                <div style={chartCardStyle()}>
+                    <h2 style={chartTitleStyle()}>Ideas by category</h2>
+                    <ResponsiveContainer width="100%" height={160}>
+                        <BarChart data={categoryDist} barSize={20}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
+                            <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                            <YAxis tick={{ fontSize: 10 }} />
+                            <Tooltip />
+                            <Bar dataKey="ideas" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
                 </div>
-            </main>
-        </div>
+            </div>
+
+            <div style={twoColStyle()}>
+                <div style={chartCardStyle()}>
+                    <h2 style={chartTitleStyle()}>Post and comment frequency</h2>
+                    <ResponsiveContainer width="100%" height={180}>
+                        <LineChart data={postFreq}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
+                            <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                            <YAxis tick={{ fontSize: 10 }} />
+                            <Tooltip />
+                            <Legend wrapperStyle={{ fontSize: 11 }} />
+                            <Line type="monotone" dataKey="posts" stroke="#3B82F6" strokeWidth={2.5} dot={{ r: 3 }} name="Posts" />
+                            <Line type="monotone" dataKey="comments" stroke="#8B5CF6" strokeWidth={2.5} dot={{ r: 3 }} name="Comments" />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </div>
+
+                <div style={chartCardStyle()}>
+                    <h2 style={chartTitleStyle()}>Users online today</h2>
+                    <ResponsiveContainer width="100%" height={180}>
+                        <LineChart data={onlineUsers}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
+                            <XAxis dataKey="time" tick={{ fontSize: 10 }} />
+                            <YAxis tick={{ fontSize: 10 }} />
+                            <Tooltip />
+                            <Line type="monotone" dataKey="count" stroke="#10B981" strokeWidth={2.5} dot={{ r: 3 }} name="Online" />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+        </AdminShell>
     );
 }
-
-export default App;
-
-
-
-
-

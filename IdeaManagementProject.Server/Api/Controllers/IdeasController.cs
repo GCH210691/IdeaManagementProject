@@ -1,8 +1,10 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using IdeaManagementProject.Server.Api.Contracts;
 using IdeaManagementProject.Server.Application.Services;
+using IdeaManagementProject.Server.Infrastructure.Persistence;
 
 namespace IdeaManagementProject.Server.Api.Controllers;
 
@@ -12,10 +14,12 @@ namespace IdeaManagementProject.Server.Api.Controllers;
 public class IdeasController : ControllerBase
 {
     private readonly IIdeaService _ideaService;
+    private readonly AppDbContext _dbContext;
 
-    public IdeasController(IIdeaService ideaService)
+    public IdeasController(IIdeaService ideaService, AppDbContext dbContext)
     {
         _ideaService = ideaService;
+        _dbContext = dbContext;
     }
 
     [HttpGet]
@@ -47,13 +51,19 @@ public class IdeasController : ControllerBase
             return BadRequest(new { message = "Title and content are required." });
         }
 
+        var categoryIds = NormalizeCategoryIds(request.CategoryIds);
+        if (!await AreValidCategoryIdsAsync(categoryIds, cancellationToken))
+        {
+            return BadRequest(new { message = "One or more categories are invalid." });
+        }
+
         if (!TryGetUserId(out var userId))
         {
             return Unauthorized();
         }
 
         var createdIdea = await _ideaService.CreateIdeaAsync(
-            new CreateIdeaInput(userId, request.Title, request.Content, request.IsAnonymous),
+            new CreateIdeaInput(userId, request.Title, request.Content, request.IsAnonymous, categoryIds),
             cancellationToken);
 
         if (createdIdea is null)
@@ -73,13 +83,19 @@ public class IdeasController : ControllerBase
             return BadRequest(new { message = "Title and content are required." });
         }
 
+        var categoryIds = NormalizeCategoryIds(request.CategoryIds);
+        if (!await AreValidCategoryIdsAsync(categoryIds, cancellationToken))
+        {
+            return BadRequest(new { message = "One or more categories are invalid." });
+        }
+
         if (!TryGetUserId(out var userId))
         {
             return Unauthorized();
         }
 
         var result = await _ideaService.UpdateIdeaAsync(
-            new UpdateIdeaInput(ideaId, userId, request.Title, request.Content, request.IsAnonymous),
+            new UpdateIdeaInput(ideaId, userId, request.Title, request.Content, request.IsAnonymous, categoryIds),
             cancellationToken);
 
         return result.Status switch
@@ -115,6 +131,28 @@ public class IdeasController : ControllerBase
         return int.TryParse(userIdClaim, out userId);
     }
 
+    private async Task<bool> AreValidCategoryIdsAsync(IReadOnlyList<int> categoryIds, CancellationToken cancellationToken)
+    {
+        if (categoryIds.Count == 0)
+        {
+            return true;
+        }
+
+        var count = await _dbContext.Categories
+            .AsNoTracking()
+            .CountAsync(x => categoryIds.Contains(x.CategoryId), cancellationToken);
+
+        return count == categoryIds.Count;
+    }
+
+    private static IReadOnlyList<int> NormalizeCategoryIds(IReadOnlyList<int>? categoryIds)
+    {
+        return (categoryIds ?? [])
+            .Where(x => x > 0)
+            .Distinct()
+            .ToList();
+    }
+
     private static IdeaDto ToDto(IdeaView idea)
     {
         return new IdeaDto(
@@ -127,6 +165,8 @@ public class IdeasController : ControllerBase
             idea.DepartmentName,
             idea.IsAnonymous,
             idea.ViewCount,
-            idea.CreatedAt);
+            idea.CreatedAt,
+            idea.Categories,
+            idea.CategoryIds);
     }
 }

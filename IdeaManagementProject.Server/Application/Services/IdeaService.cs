@@ -15,51 +15,38 @@ public class IdeaService : IIdeaService
 
     public async Task<IReadOnlyList<IdeaView>> GetIdeasAsync(CancellationToken cancellationToken = default)
     {
-        return await _dbContext.Ideas
+        var ideas = await _dbContext.Ideas
             .AsNoTracking()
             .Include(x => x.AuthorUser)
             .Include(x => x.Department)
+            .Include(x => x.IdeaCategories)
+                .ThenInclude(x => x.Category)
             .OrderByDescending(x => x.CreatedAt)
-            .Select(x => new IdeaView(
-                x.IdeaId,
-                x.Title,
-                x.Content,
-                x.AuthorUserId,
-                x.IsAnonymous ? "Anonymous" : x.AuthorUser.Name,
-                x.DepartmentId,
-                x.Department.Name,
-                x.IsAnonymous,
-                x.ViewCount,
-                x.CreatedAt))
             .ToListAsync(cancellationToken);
+
+        return ideas.Select(ToView).ToList();
     }
 
     public async Task<IdeaView?> GetIdeaByIdAsync(int ideaId, bool incrementViewCount = false, CancellationToken cancellationToken = default)
     {
         if (!incrementViewCount)
         {
-            return await _dbContext.Ideas
+            var ideaSnapshot = await _dbContext.Ideas
                 .AsNoTracking()
                 .Include(x => x.AuthorUser)
                 .Include(x => x.Department)
-                .Where(x => x.IdeaId == ideaId)
-                .Select(x => new IdeaView(
-                    x.IdeaId,
-                    x.Title,
-                    x.Content,
-                    x.AuthorUserId,
-                    x.IsAnonymous ? "Anonymous" : x.AuthorUser.Name,
-                    x.DepartmentId,
-                    x.Department.Name,
-                    x.IsAnonymous,
-                    x.ViewCount,
-                    x.CreatedAt))
-                .FirstOrDefaultAsync(cancellationToken);
+                .Include(x => x.IdeaCategories)
+                    .ThenInclude(x => x.Category)
+                .FirstOrDefaultAsync(x => x.IdeaId == ideaId, cancellationToken);
+
+            return ideaSnapshot is null ? null : ToView(ideaSnapshot);
         }
 
         var idea = await _dbContext.Ideas
             .Include(x => x.AuthorUser)
             .Include(x => x.Department)
+            .Include(x => x.IdeaCategories)
+                .ThenInclude(x => x.Category)
             .FirstOrDefaultAsync(x => x.IdeaId == ideaId, cancellationToken);
 
         if (idea is null)
@@ -85,6 +72,11 @@ public class IdeaService : IIdeaService
             return null;
         }
 
+        var selectedCategoryIds = input.CategoryIds.Distinct().ToList();
+        var categories = await _dbContext.Categories
+            .Where(x => selectedCategoryIds.Contains(x.CategoryId))
+            .ToListAsync(cancellationToken);
+
         var idea = new Idea
         {
             Title = input.Title.Trim(),
@@ -93,10 +85,23 @@ public class IdeaService : IIdeaService
             DepartmentId = user.DepartmentId,
             IsAnonymous = input.IsAnonymous,
             ViewCount = 0,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
         };
 
         _dbContext.Ideas.Add(idea);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        foreach (var category in categories)
+        {
+            idea.IdeaCategories.Add(new IdeaCategory
+            {
+                IdeaId = idea.IdeaId,
+                CategoryId = category.CategoryId,
+                Idea = idea,
+                Category = category,
+            });
+        }
+
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         idea.AuthorUser = user;
@@ -110,6 +115,8 @@ public class IdeaService : IIdeaService
         var idea = await _dbContext.Ideas
             .Include(x => x.AuthorUser)
             .Include(x => x.Department)
+            .Include(x => x.IdeaCategories)
+                .ThenInclude(x => x.Category)
             .FirstOrDefaultAsync(x => x.IdeaId == input.IdeaId, cancellationToken);
 
         if (idea is null)
@@ -120,6 +127,40 @@ public class IdeaService : IIdeaService
         if (idea.AuthorUserId != input.UserId)
         {
             return new IdeaMutationResult(IdeaMutationStatus.Forbidden, null);
+        }
+
+        var nextCategoryIds = input.CategoryIds.Distinct().ToHashSet();
+        var currentCategoryIds = idea.IdeaCategories.Select(x => x.CategoryId).ToHashSet();
+
+        var removeItems = idea.IdeaCategories
+            .Where(x => !nextCategoryIds.Contains(x.CategoryId))
+            .ToList();
+
+        if (removeItems.Count > 0)
+        {
+            _dbContext.IdeaCategories.RemoveRange(removeItems);
+        }
+
+        var categoryIdsToAdd = nextCategoryIds
+            .Where(x => !currentCategoryIds.Contains(x))
+            .ToList();
+
+        if (categoryIdsToAdd.Count > 0)
+        {
+            var categoriesToAdd = await _dbContext.Categories
+                .Where(x => categoryIdsToAdd.Contains(x.CategoryId))
+                .ToListAsync(cancellationToken);
+
+            foreach (var category in categoriesToAdd)
+            {
+                idea.IdeaCategories.Add(new IdeaCategory
+                {
+                    IdeaId = idea.IdeaId,
+                    CategoryId = category.CategoryId,
+                    Idea = idea,
+                    Category = category,
+                });
+            }
         }
 
         idea.Title = input.Title.Trim();
@@ -154,6 +195,10 @@ public class IdeaService : IIdeaService
 
     private static IdeaView ToView(Idea idea)
     {
+        var orderedCategories = idea.IdeaCategories
+            .OrderBy(x => x.Category.Name)
+            .ToList();
+
         return new IdeaView(
             idea.IdeaId,
             idea.Title,
@@ -164,6 +209,8 @@ public class IdeaService : IIdeaService
             idea.Department.Name,
             idea.IsAnonymous,
             idea.ViewCount,
-            idea.CreatedAt);
+            idea.CreatedAt,
+            orderedCategories.Select(x => x.Category.Name).ToList(),
+            orderedCategories.Select(x => x.CategoryId).ToList());
     }
 }

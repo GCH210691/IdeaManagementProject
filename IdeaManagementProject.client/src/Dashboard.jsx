@@ -1,104 +1,13 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
     BASE_URL,
-    canCreateIdeas,
-    canManageIdea,
-    clearAuthSession,
     getAuthHeaders,
     getAuthSession,
     getDisplayName,
+    isDashboardRole,
     roleToPath,
 } from './authStorage';
-
-function pageStyle() {
-    return {
-        display: 'flex',
-        minHeight: '100vh',
-        fontFamily: "'DM Sans', 'Segoe UI', system-ui, sans-serif",
-        background: '#F9FAFB',
-    };
-}
-
-function sidebarStyle() {
-    return {
-        width: '224px',
-        minHeight: '100vh',
-        background: '#0F1C33',
-        display: 'flex',
-        flexDirection: 'column',
-        flexShrink: 0,
-    };
-}
-
-function sidebarLogoAreaStyle() {
-    return {
-        padding: '1.5rem',
-        borderBottom: '1px solid rgba(255,255,255,0.1)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.75rem',
-    };
-}
-
-function logoBadgeStyle() {
-    return {
-        width: '32px',
-        height: '32px',
-        borderRadius: '8px',
-        background: '#3B82F6',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: '#fff',
-        fontWeight: 900,
-        fontSize: '12px',
-        flexShrink: 0,
-    };
-}
-
-function navStyle() {
-    return {
-        flex: 1,
-        padding: '1rem 0.75rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '2px',
-    };
-}
-
-function navItemStyle(active) {
-    return {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.75rem',
-        padding: '0.6rem 0.75rem',
-        borderRadius: '8px',
-        fontSize: '14px',
-        fontWeight: 500,
-        cursor: 'pointer',
-        border: 'none',
-        width: '100%',
-        textAlign: 'left',
-        transition: 'background 0.15s, color 0.15s',
-        background: active ? '#3B82F6' : 'transparent',
-        color: active ? '#fff' : 'rgba(255,255,255,0.5)',
-        fontFamily: 'inherit',
-    };
-}
-
-function onlineDotStyle() {
-    return {
-        width: '8px',
-        height: '8px',
-        borderRadius: '50%',
-        background: '#4ADE80',
-        flexShrink: 0,
-    };
-}
-
-function mainStyle() {
-    return { flex: 1, padding: '2rem', overflowY: 'auto' };
-}
+import StaffShell from './StaffShell';
 
 function pageHeaderStyle() {
     return {
@@ -119,7 +28,7 @@ function subStyle() {
     return { margin: 0, fontSize: '13px', color: '#6B7280' };
 }
 
-function actionButtonStyle(primary = false) {
+function actionButtonStyle() {
     return {
         border: 'none',
         borderRadius: '8px',
@@ -128,27 +37,8 @@ function actionButtonStyle(primary = false) {
         fontWeight: 700,
         cursor: 'pointer',
         fontFamily: 'inherit',
-        color: primary ? '#fff' : '#111827',
-        background: primary ? '#2563EB' : '#E5E7EB',
-    };
-}
-
-function tinyButtonStyle(tone = 'neutral') {
-    const map = {
-        neutral: { background: '#E5E7EB', color: '#111827' },
-        primary: { background: '#DBEAFE', color: '#1E40AF' },
-        danger: { background: '#FEE2E2', color: '#991B1B' },
-    };
-
-    return {
-        border: 'none',
-        borderRadius: '6px',
-        padding: '4px 8px',
-        fontSize: '11px',
-        fontWeight: 700,
-        cursor: 'pointer',
-        fontFamily: 'inherit',
-        ...map[tone],
+        color: '#111827',
+        background: '#E5E7EB',
     };
 }
 
@@ -229,11 +119,10 @@ function ideaCardStyle() {
         border: '1px solid #F3F4F6',
         padding: '1rem',
         boxSizing: 'border-box',
-        transition: 'box-shadow 0.2s',
     };
 }
 
-function badgeStyle(text) {
+function badgeStyle() {
     return {
         fontSize: '11px',
         fontWeight: 600,
@@ -288,6 +177,20 @@ function avatarStyle() {
     };
 }
 
+function tinyButtonStyle() {
+    return {
+        border: 'none',
+        borderRadius: '6px',
+        padding: '4px 8px',
+        fontSize: '11px',
+        fontWeight: 700,
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        background: '#E5E7EB',
+        color: '#111827',
+    };
+}
+
 function toRelativeTime(value) {
     if (!value) {
         return 'Unknown time';
@@ -304,7 +207,6 @@ function toRelativeTime(value) {
     if (diffMin < 1) {
         return 'Just now';
     }
-
     if (diffMin < 60) {
         return `${diffMin}m ago`;
     }
@@ -327,76 +229,13 @@ function isToday(value) {
         && date.getDate() === now.getDate();
 }
 
-function Sidebar({ active, setActive, ideaCount }) {
-    const menuItems = [
-        { id: 'dashboard', icon: '🏠', label: 'Dashboard' },
-        { id: 'myideas', icon: '💡', label: 'My ideas' },
-        { id: 'categories', icon: '📁', label: 'Departments' },
-    ];
-
-    function handleLogout() {
-        clearAuthSession();
-        window.location.href = '/login';
-    }
-
-    return (
-        <div style={sidebarStyle()}>
-            <div style={sidebarLogoAreaStyle()}>
-                <div style={logoBadgeStyle()}>SS</div>
-                <div>
-                    <div style={{ color: '#fff', fontWeight: 900, fontSize: '14px', lineHeight: 1.2 }}>IdeaHub</div>
-                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px' }}>Staff</div>
-                </div>
-            </div>
-
-            <nav style={navStyle()}>
-                {menuItems.map((item) => (
-                    <button
-                        key={item.id}
-                        style={navItemStyle(active === item.id)}
-                        onClick={() => setActive(item.id)}>
-                        <span style={{ fontSize: '16px' }}>{item.icon}</span>
-                        {item.label}
-                    </button>
-                ))}
-            </nav>
-
-            <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                    <div style={onlineDotStyle()} />
-                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px' }}>{ideaCount} ideas in DB</span>
-                </div>
-                <button
-                    onClick={handleLogout}
-                    style={{
-                        background: 'none',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: '7px',
-                        color: 'rgba(255,255,255,0.4)',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        padding: '6px 12px',
-                        width: '100%',
-                        fontFamily: 'inherit',
-                        transition: 'color 0.15s, border-color 0.15s',
-                    }}>
-                    Logout
-                </button>
-            </div>
-        </div>
-    );
-}
-
-function Dashboard() {
+export default function Dashboard() {
     const session = useMemo(() => getAuthSession(), []);
     const user = session?.user;
 
-    const [activeMenu, setActiveMenu] = useState('dashboard');
     const [tab, setTab] = useState('recent');
     const [ideas, setIdeas] = useState([]);
     const [message, setMessage] = useState('Loading dashboard data...');
-    const [actionMessage, setActionMessage] = useState('');
-    const [deletingId, setDeletingId] = useState(0);
 
     useEffect(() => {
         if (!session?.token || !user) {
@@ -404,7 +243,7 @@ function Dashboard() {
             return;
         }
 
-        if (user.role !== 'STAFF') {
+        if (!isDashboardRole(user)) {
             window.location.href = roleToPath(user.role);
             return;
         }
@@ -433,8 +272,7 @@ function Dashboard() {
                     return;
                 }
 
-                const nextIdeas = Array.isArray(payload) ? payload : [];
-                setIdeas(nextIdeas);
+                setIdeas(Array.isArray(payload) ? payload : []);
                 setMessage('');
             } catch (error) {
                 const details = error instanceof Error ? error.message : String(error);
@@ -450,22 +288,13 @@ function Dashboard() {
     }, [session, user]);
 
     const username = getDisplayName(user);
-
     const myIdeas = useMemo(
         () => ideas.filter((idea) => Number(idea.authorUserId) === Number(user?.id)),
         [ideas, user?.id],
     );
 
-    const sourceIdeas = useMemo(() => {
-        if (activeMenu === 'myideas') {
-            return myIdeas;
-        }
-
-        return ideas;
-    }, [activeMenu, ideas, myIdeas]);
-
     const sortedIdeas = useMemo(() => {
-        const items = [...sourceIdeas];
+        const items = [...ideas];
 
         if (tab === 'hot') {
             items.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
@@ -474,7 +303,7 @@ function Dashboard() {
         }
 
         return items;
-    }, [sourceIdeas, tab]);
+    }, [ideas, tab]);
 
     const ideaCards = useMemo(() => sortedIdeas.slice(0, 6), [sortedIdeas]);
 
@@ -482,18 +311,6 @@ function Dashboard() {
         return [...ideas]
             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
             .slice(0, 5);
-    }, [ideas]);
-
-    const departmentSummary = useMemo(() => {
-        const grouped = new Map();
-        for (const item of ideas) {
-            const key = item.departmentName || 'Unknown';
-            grouped.set(key, (grouped.get(key) || 0) + 1);
-        }
-
-        return [...grouped.entries()]
-            .map(([name, count]) => ({ name, count }))
-            .sort((a, b) => b.count - a.count);
     }, [ideas]);
 
     const stats = useMemo(() => {
@@ -507,74 +324,12 @@ function Dashboard() {
         };
     }, [ideas, myIdeas.length]);
 
-    function goToIdeas() {
-        window.location.href = '/ideas';
-    }
-
-    function goCreateIdea() {
-        window.location.href = '/ideas/create';
+    function refreshIdeas() {
+        window.location.reload();
     }
 
     function viewIdea(ideaId) {
         window.location.href = `/ideas/${ideaId}`;
-    }
-
-    function editIdea(idea) {
-        if (!canManageIdea(user, idea)) {
-            return;
-        }
-
-        window.location.href = `/ideas/${idea.ideaId}/edit`;
-    }
-
-    async function deleteIdea(idea) {
-        if (!canManageIdea(user, idea)) {
-            setActionMessage('You can only delete your own ideas.');
-            return;
-        }
-
-        if (!window.confirm(`Delete idea "${idea.title}"?`)) {
-            return;
-        }
-
-        setDeletingId(idea.ideaId);
-        setActionMessage('');
-
-        try {
-            const response = await fetch(`/api/ideas/${idea.ideaId}`, {
-                method: 'DELETE',
-                headers: getAuthHeaders({ Accept: 'application/json' }),
-            });
-
-            if (response.status === 401) {
-                window.location.href = '/login';
-                return;
-            }
-
-            if (response.status === 403) {
-                setActionMessage('You can only delete your own ideas.');
-                return;
-            }
-
-            if (response.status === 404) {
-                setActionMessage('Idea not found.');
-                setIdeas((currentIdeas) => currentIdeas.filter((currentIdea) => currentIdea.ideaId !== idea.ideaId));
-                return;
-            }
-
-            if (!response.ok) {
-                setActionMessage(`Delete failed: ${response.status}`);
-                return;
-            }
-
-            setIdeas((currentIdeas) => currentIdeas.filter((currentIdea) => currentIdea.ideaId !== idea.ideaId));
-            setActionMessage('Idea deleted.');
-        } catch (error) {
-            const details = error instanceof Error ? error.message : String(error);
-            setActionMessage(`Delete error: ${details}`);
-        } finally {
-            setDeletingId(0);
-        }
     }
 
     if (!session?.token || !user) {
@@ -582,174 +337,113 @@ function Dashboard() {
     }
 
     return (
-        <div style={pageStyle()}>
-            <Sidebar active={activeMenu} setActive={setActiveMenu} ideaCount={ideas.length} />
-
-            <main style={mainStyle()}>
-                <div style={pageHeaderStyle()}>
-                    <div>
-                        <h1 style={h1Style()}>Staff Dashboard</h1>
-                        <p style={subStyle()}>{`Welcome back, ${username}. Here is what is in the database now.`}</p>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        <button type="button" style={actionButtonStyle()} onClick={goToIdeas}>View all ideas</button>
-                        {canCreateIdeas(user) && (
-                            <button type="button" style={actionButtonStyle(true)} onClick={goCreateIdea}>Create idea</button>
-                        )}
-                    </div>
+        <StaffShell activeMenu="dashboard" footerText={`${ideas.length} ideas in DB`}>
+            <div style={pageHeaderStyle()}>
+                <div>
+                    <h1 style={h1Style()}>Staff Dashboard</h1>
+                    <p style={subStyle()}>{`Welcome back, ${username}. Here is the current overview.`}</p>
                 </div>
+                <button type="button" style={actionButtonStyle()} onClick={refreshIdeas}>Refresh data</button>
+            </div>
 
-                <div style={statsGridStyle()}>
-                    <div style={statCardStyle()}>
-                        <div style={statTopRowStyle()}>
-                            <span style={{ fontSize: '24px' }}>💡</span>
-                            <span style={changeBadgeStyle(stats.todayIdeas > 0)}>{stats.todayIdeas > 0 ? 'Today' : 'No new yet'}</span>
-                        </div>
-                        <div style={{ fontSize: '1.875rem', fontWeight: 900, color: '#111827' }}>{stats.todayIdeas}</div>
-                        <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>Ideas created today</div>
+            <div style={statsGridStyle()}>
+                <div style={statCardStyle()}>
+                    <div style={statTopRowStyle()}>
+                        <span style={{ fontSize: '24px' }}>ID</span>
+                        <span style={changeBadgeStyle(stats.todayIdeas > 0)}>{stats.todayIdeas > 0 ? 'Today' : 'No new yet'}</span>
                     </div>
-                    <div style={statCardStyle()}>
-                        <div style={statTopRowStyle()}>
-                            <span style={{ fontSize: '24px' }}>🧑‍💻</span>
-                            <span style={changeBadgeStyle(myIdeas.length > 0)}>{myIdeas.length > 0 ? 'Your contributions' : 'No post yet'}</span>
-                        </div>
-                        <div style={{ fontSize: '1.875rem', fontWeight: 900, color: '#111827' }}>{myIdeas.length}</div>
-                        <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>Ideas you created</div>
-                    </div>
-                    <div style={statCardStyle()}>
-                        <div style={statTopRowStyle()}>
-                            <span style={{ fontSize: '24px' }}>👀</span>
-                            <span style={changeBadgeStyle(stats.totalViews > 0)}>{stats.totalViews > 0 ? 'Live data' : 'Waiting data'}</span>
-                        </div>
-                        <div style={{ fontSize: '1.875rem', fontWeight: 900, color: '#111827' }}>{stats.totalViews}</div>
-                        <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>Total idea views</div>
-                    </div>
+                    <div style={{ fontSize: '1.875rem', fontWeight: 900, color: '#111827' }}>{stats.todayIdeas}</div>
+                    <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>Ideas created today</div>
                 </div>
-
-                {activeMenu !== 'categories' && (
-                    <div style={tabBarStyle()}>
-                        <button style={tabBtnStyle(tab === 'recent')} onClick={() => setTab('recent')}>Recent</button>
-                        <button style={tabBtnStyle(tab === 'hot')} onClick={() => setTab('hot')}>Most viewed</button>
+                <div style={statCardStyle()}>
+                    <div style={statTopRowStyle()}>
+                        <span style={{ fontSize: '24px' }}>MY</span>
+                        <span style={changeBadgeStyle(myIdeas.length > 0)}>{myIdeas.length > 0 ? 'Your contributions' : 'No post yet'}</span>
                     </div>
-                )}
-
-                {message && <p style={{ color: '#B91C1C', marginTop: 0 }}>{message}</p>}
-                {actionMessage && <p style={{ color: actionMessage.includes('deleted') ? '#065F46' : '#B91C1C', marginTop: 0 }}>{actionMessage}</p>}
-
-                {!message && activeMenu !== 'categories' && ideaCards.length === 0 && (
-                    <div style={sectionStyle()}>
-                        <p style={{ margin: 0, color: '#6B7280', fontSize: '13px' }}>No ideas to show yet.</p>
+                    <div style={{ fontSize: '1.875rem', fontWeight: 900, color: '#111827' }}>{myIdeas.length}</div>
+                    <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>Ideas you created</div>
+                </div>
+                <div style={statCardStyle()}>
+                    <div style={statTopRowStyle()}>
+                        <span style={{ fontSize: '24px' }}>VW</span>
+                        <span style={changeBadgeStyle(stats.totalViews > 0)}>{stats.totalViews > 0 ? 'Live data' : 'Waiting data'}</span>
                     </div>
-                )}
+                    <div style={{ fontSize: '1.875rem', fontWeight: 900, color: '#111827' }}>{stats.totalViews}</div>
+                    <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>Total idea views</div>
+                </div>
+            </div>
 
-                {!message && activeMenu !== 'categories' && ideaCards.length > 0 && (
-                    <div style={ideasGridStyle()}>
-                        {ideaCards.map((idea, index) => {
-                            const allowManage = canManageIdea(user, idea);
+            <div style={tabBarStyle()}>
+                <button style={tabBtnStyle(tab === 'recent')} onClick={() => setTab('recent')}>Recent</button>
+                <button style={tabBtnStyle(tab === 'hot')} onClick={() => setTab('hot')}>Most viewed</button>
+            </div>
 
-                            return (
-                                <div key={idea.ideaId} style={ideaCardStyle()}>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            <span style={badgeStyle(idea.departmentName)}>{idea.departmentName || 'Department'}</span>
-                                            {tab === 'hot' && index < 3 && <span style={hotTagStyle()}>🔥 Hot</span>}
-                                        </div>
-                                        <span style={{ fontSize: '11px', color: '#9CA3AF' }}>{toRelativeTime(idea.createdAt)}</span>
-                                    </div>
-                                    <h3 style={{ margin: '0 0 4px 0', fontSize: '13px', fontWeight: 700, color: '#111827', lineHeight: 1.4 }}>
-                                        {idea.title}
-                                    </h3>
-                                    <p style={{ margin: '0 0 0.75rem 0', fontSize: '12px', color: '#6B7280' }}>
-                                        by {idea.authorName}
-                                    </p>
-                                    <div style={{ display: 'flex', gap: '1rem', fontSize: '12px', color: '#6B7280', marginBottom: '0.75rem' }}>
-                                        <span>👀 {idea.viewCount || 0}</span>
-                                        <span>{idea.isAnonymous ? 'Anonymous' : 'Named'}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                                        <button type="button" style={tinyButtonStyle('neutral')} onClick={() => viewIdea(idea.ideaId)}>View</button>
-                                        {allowManage && (
-                                            <>
-                                                <button type="button" style={tinyButtonStyle('primary')} onClick={() => editIdea(idea)}>Edit</button>
-                                                <button
-                                                    type="button"
-                                                    style={tinyButtonStyle('danger')}
-                                                    onClick={() => deleteIdea(idea)}
-                                                    disabled={deletingId === idea.ideaId}>
-                                                    {deletingId === idea.ideaId ? 'Deleting...' : 'Delete'}
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
+            {message && <p style={{ color: '#B91C1C', marginTop: 0 }}>{message}</p>}
+
+            {!message && ideaCards.length === 0 && (
+                <div style={sectionStyle()}>
+                    <p style={{ margin: 0, color: '#6B7280', fontSize: '13px' }}>No ideas to show yet.</p>
+                </div>
+            )}
+
+            {!message && ideaCards.length > 0 && (
+                <div style={ideasGridStyle()}>
+                    {ideaCards.map((idea, index) => (
+                        <div key={idea.ideaId} style={ideaCardStyle()}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span style={badgeStyle()}>{idea.departmentName || 'Department'}</span>
+                                    {tab === 'hot' && index < 3 && <span style={hotTagStyle()}>Hot</span>}
                                 </div>
-                            );
-                        })}
-                    </div>
-                )}
-
-                {!message && activeMenu === 'categories' && (
-                    <div style={sectionStyle()}>
-                        <h2 style={{ margin: '0 0 1rem 0', fontSize: '13px', fontWeight: 700, color: '#1F2937' }}>
-                            Ideas by department
-                        </h2>
-                        {departmentSummary.length === 0 && (
-                            <p style={{ margin: 0, color: '#6B7280', fontSize: '13px' }}>No department data yet.</p>
-                        )}
-                        {departmentSummary.map((item, index) => (
-                            <div
-                                key={item.name}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    paddingBottom: '0.75rem',
-                                    marginBottom: '0.75rem',
-                                    borderBottom: index === departmentSummary.length - 1 ? 'none' : '1px solid #F3F4F6',
-                                }}>
-                                <span style={{ fontSize: '13px', color: '#374151' }}>{item.name}</span>
-                                <strong style={{ fontSize: '13px', color: '#111827' }}>{item.count}</strong>
+                                <span style={{ fontSize: '11px', color: '#9CA3AF' }}>{toRelativeTime(idea.createdAt)}</span>
                             </div>
-                        ))}
-                    </div>
-                )}
+                            <h3 style={{ margin: '0 0 4px 0', fontSize: '13px', fontWeight: 700, color: '#111827', lineHeight: 1.4 }}>
+                                {idea.title}
+                            </h3>
+                            <p style={{ margin: '0 0 0.75rem 0', fontSize: '12px', color: '#6B7280' }}>
+                                by {idea.authorName}
+                            </p>
+                            <div style={{ display: 'flex', gap: '1rem', fontSize: '12px', color: '#6B7280', marginBottom: '0.75rem' }}>
+                                <span>Views {idea.viewCount || 0}</span>
+                                <span>{idea.isAnonymous ? 'Anonymous' : 'Named'}</span>
+                            </div>
+                            <button type="button" style={tinyButtonStyle()} onClick={() => viewIdea(idea.ideaId)}>View</button>
+                        </div>
+                    ))}
+                </div>
+            )}
 
-                {!message && latestActivity.length > 0 && (
-                    <div style={sectionStyle()}>
-                        <h2 style={{ margin: '0 0 1rem 0', fontSize: '13px', fontWeight: 700, color: '#1F2937' }}>
-                            Latest database activity
-                        </h2>
-                        {latestActivity.map((item, index) => (
-                            <div
-                                key={item.ideaId}
-                                style={{
-                                    ...rowStyle(),
-                                    ...(index === latestActivity.length - 1
-                                        ? { borderBottom: 'none', marginBottom: 0, paddingBottom: 0 }
-                                        : {}),
-                                }}>
-                                <div style={avatarStyle()}>{(item.authorName || 'U').slice(0, 1).toUpperCase()}</div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px', flexWrap: 'wrap' }}>
-                                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#1F2937' }}>{item.authorName}</span>
-                                        <span style={{ fontSize: '12px', color: '#9CA3AF' }}>created</span>
-                                        <span style={{ fontSize: '12px', color: '#3B82F6' }}>{item.title}</span>
-                                        <span style={{ fontSize: '11px', color: '#9CA3AF', marginLeft: 'auto' }}>{toRelativeTime(item.createdAt)}</span>
-                                    </div>
-                                    <p style={{ margin: 0, fontSize: '12px', color: '#4B5563' }}>
-                                        Department: {item.departmentName} | Views: {item.viewCount || 0}
-                                    </p>
+            {!message && latestActivity.length > 0 && (
+                <div style={sectionStyle()}>
+                    <h2 style={{ margin: '0 0 1rem 0', fontSize: '13px', fontWeight: 700, color: '#1F2937' }}>
+                        Latest database activity
+                    </h2>
+                    {latestActivity.map((item, index) => (
+                        <div
+                            key={item.ideaId}
+                            style={{
+                                ...rowStyle(),
+                                ...(index === latestActivity.length - 1
+                                    ? { borderBottom: 'none', marginBottom: 0, paddingBottom: 0 }
+                                    : {}),
+                            }}>
+                            <div style={avatarStyle()}>{(item.authorName || 'U').slice(0, 1).toUpperCase()}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px', flexWrap: 'wrap' }}>
+                                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#1F2937' }}>{item.authorName}</span>
+                                    <span style={{ fontSize: '12px', color: '#9CA3AF' }}>created</span>
+                                    <span style={{ fontSize: '12px', color: '#3B82F6' }}>{item.title}</span>
+                                    <span style={{ fontSize: '11px', color: '#9CA3AF', marginLeft: 'auto' }}>{toRelativeTime(item.createdAt)}</span>
                                 </div>
+                                <p style={{ margin: 0, fontSize: '12px', color: '#4B5563' }}>
+                                    Department: {item.departmentName} | Views: {item.viewCount || 0}
+                                </p>
                             </div>
-                        ))}
-                    </div>
-                )}
-            </main>
-        </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </StaffShell>
     );
 }
-
-export default Dashboard;
-
-
-
 

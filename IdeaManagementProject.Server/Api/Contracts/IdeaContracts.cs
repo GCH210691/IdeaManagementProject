@@ -1,8 +1,8 @@
 namespace IdeaManagementProject.Server.Api.Contracts;
 
-public sealed record CreateIdeaRequest(string? Title, string? Content, bool IsAnonymous);
+public sealed record CreateIdeaRequest(string? Title, string? Content, bool IsAnonymous, IReadOnlyList<int>? CategoryIds);
 
-public sealed record UpdateIdeaRequest(string? Title, string? Content, bool IsAnonymous);
+public sealed record UpdateIdeaRequest(string? Title, string? Content, bool IsAnonymous, IReadOnlyList<int>? CategoryIds);
 
 public sealed record IdeaDto(
     int IdeaId,
@@ -14,4 +14,6 @@ public sealed record IdeaDto(
     string DepartmentName,
     bool IsAnonymous,
     int ViewCount,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    IReadOnlyList<string> Categories,
+    IReadOnlyList<int> CategoryIds);
