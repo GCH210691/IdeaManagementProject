@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getAuthHeaders, getAuthSession, roleToPath } from './authStorage';
+import { getAuthHeaders, getAuthSession, roleToPath, BASE_URL } from './authStorage';
 import AdminShell from './AdminShell';
 
 function toLocalInputValue(value) {
@@ -373,10 +373,10 @@ export default function AdminAccountsPage() {
 
         try {
             const [usersResponse, optionsResponse] = await Promise.all([
-                fetch('/api/admin/users', {
+                fetch(`${BASE_URL}/api/admin/users`, {
                     headers: getAuthHeaders({ Accept: 'application/json' }),
                 }),
-                fetch('/api/admin/users/options', {
+                fetch(`${BASE_URL}/api/admin/users/options`, {
                     headers: getAuthHeaders({ Accept: 'application/json' }),
                 }),
             ]);

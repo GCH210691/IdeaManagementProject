@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getAuthHeaders, getAuthSession, roleToPath } from './authStorage';
+import { getAuthHeaders, getAuthSession, roleToPath, BASE_URL } from './authStorage';
 import AdminShell from './AdminShell';
 
 function containerStyle() {
@@ -311,10 +311,10 @@ export default function AdminDepartmentsPage() {
 
         try {
             const [departmentsResponse, usersResponse] = await Promise.all([
-                fetch('/api/admin/departments', {
+                fetch(`${BASE_URL}/api/admin/departments`, {
                     headers: getAuthHeaders({ Accept: 'application/json' }),
                 }),
-                fetch('/api/admin/users', {
+                fetch(`${BASE_URL}/api/admin/users`, {
                     headers: getAuthHeaders({ Accept: 'application/json' }),
                 }),
             ]);
@@ -423,7 +423,7 @@ export default function AdminDepartmentsPage() {
         setFeedback({ type: 'info', text: 'Creating department...' });
 
         try {
-            const response = await fetch('/api/admin/departments', {
+            const response = await fetch(`${BASE_URL}/api/admin/departments`, {
                 method: 'POST',
                 headers: getAuthHeaders({
                     'Content-Type': 'application/json',
@@ -477,7 +477,7 @@ export default function AdminDepartmentsPage() {
         setFeedback({ type: 'info', text: 'Saving department...' });
 
         try {
-            const response = await fetch(`/api/admin/departments/${editingDepartmentId}`, {
+            const response = await fetch(`${BASE_URL}/api/admin/departments/${editingDepartmentId}`, {
                 method: 'PUT',
                 headers: getAuthHeaders({
                     'Content-Type': 'application/json',
@@ -525,7 +525,7 @@ export default function AdminDepartmentsPage() {
         setFeedback({ type: 'info', text: 'Deleting department...' });
 
         try {
-            const response = await fetch(`/api/admin/departments/${department.departmentId}`, {
+            const response = await fetch(`${BASE_URL}/api/admin/departments/${department.departmentId}`, {
                 method: 'DELETE',
                 headers: getAuthHeaders({ Accept: 'application/json' }),
             });
