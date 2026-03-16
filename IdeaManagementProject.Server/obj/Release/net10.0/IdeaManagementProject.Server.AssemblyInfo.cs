@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("IdeaManagementProject.Server")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+62885246ef2318071b07890560e06007716d211c")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+aec7855d9cfd0012009eaf4af5fd83d796fbcba1")]
 [assembly: System.Reflection.AssemblyProductAttribute("IdeaManagementProject.Server")]
 [assembly: System.Reflection.AssemblyTitleAttribute("IdeaManagementProject.Server")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

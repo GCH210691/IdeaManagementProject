@@ -1,6 +1,6 @@
 {
 "SpaProxyServer": {
-"ServerUrl": "https://localhost:59420",
+"ServerUrl": "http://localhost:59420",
 "RedirectUrl": "",
 "LaunchCommand": "npm run dev",
 "WorkingDirectory": "C:\\Users\\admin\\OneDrive\\Documents\\GitHub\\IdeaManagementProject\\IdeaManagementProject.Server\\..\\IdeaManagementProject.client",
