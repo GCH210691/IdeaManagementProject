@@ -1,1 +1,19 @@
+<<<<<<< HEAD
 .vs/
+=======
+node_modules/
+dist/
+.vs/
+
+# .NET build outputs
+bin/
+obj/
+
+# Common local/tooling files
+*.user
+*.suo
+*.cache
+
+.dotnet/
+.tmp-category-build/
+>>>>>>> 23f767897f862e06559d14442ade588373434953

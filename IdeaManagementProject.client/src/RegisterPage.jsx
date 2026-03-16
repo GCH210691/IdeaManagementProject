@@ -1,8 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { BASE_URL } from './authStorage';
 
-const ROLES = ['User', 'Staff', 'QA', 'Admin'];
-
-/* ─── Styles (inline, matching project convention) ─── */
 function appStyle() {
     return {
         minHeight: '100vh',
@@ -21,8 +19,10 @@ function appStyle() {
 function bgOrbStyle(top, left, size, color) {
     return {
         position: 'absolute',
-        top, left,
-        width: size, height: size,
+        top,
+        left,
+        width: size,
+        height: size,
         borderRadius: '50%',
         background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
         pointerEvents: 'none',
@@ -47,7 +47,7 @@ function cardStyle() {
         position: 'relative',
         zIndex: 1,
         width: '100%',
-        maxWidth: '480px',
+        maxWidth: '520px',
         background: 'rgba(255,255,255,0.04)',
         border: '1px solid rgba(255,255,255,0.1)',
         borderRadius: '20px',
@@ -69,10 +69,13 @@ function logoRowStyle() {
 
 function logoBadgeStyle() {
     return {
-        width: '38px', height: '38px',
+        width: '38px',
+        height: '38px',
         borderRadius: '10px',
         background: 'linear-gradient(135deg, #2563EB, #60A5FA)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         color: '#fff',
         fontWeight: 900,
         fontSize: '13px',
@@ -122,16 +125,19 @@ function inputStyle(focus, hasError) {
         fontSize: '14px',
         outline: 'none',
         fontFamily: 'inherit',
-        boxShadow: focus ? `0 0 0 3px ${hasError ? 'rgba(239,68,68,0.15)' : 'rgba(59,130,246,0.15)'}` : 'none',
+        boxShadow: focus
+            ? `0 0 0 3px ${hasError ? 'rgba(239,68,68,0.15)' : 'rgba(59,130,246,0.15)'}`
+            : 'none',
     };
 }
 
-function selectStyle(focus) {
+function selectStyle(focus, hasError = false) {
     return {
-        ...inputStyle(focus, false),
+        ...inputStyle(focus, hasError),
         appearance: 'none',
         WebkitAppearance: 'none',
-        backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='rgba(255,255,255,0.4)' d='M6 8L1 3h10z'/%3E%3C/svg%3E\")",
+        backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='rgba(255,255,255,0.4)' d='M6 8L1 3h10z'/%3E%3C/svg%3E\")",
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'right 14px center',
         backgroundSize: '12px',
@@ -225,18 +231,19 @@ function msgStyle(isError) {
     };
 }
 
-/* ─── Password Strength ─── */
 function PasswordStrength({ password }) {
     if (!password) return null;
+
     const checks = [
         password.length >= 8,
         /[A-Z]/.test(password),
         /[0-9]/.test(password),
         /[^A-Za-z0-9]/.test(password),
     ];
+
     const score = checks.filter(Boolean).length;
-    const labels = ['8+ ký tự', 'Hoa', 'Số', 'Đặc biệt'];
-    const levelNames = ['', 'Yếu', 'Trung bình', 'Tốt', 'Mạnh'];
+    const labels = ['8+ chars', 'Uppercase', 'Number', 'Special'];
+    const levelNames = ['', 'Weak', 'Fair', 'Good', 'Strong'];
     const levelColors = ['', '#EF4444', '#F59E0B', '#3B82F6', '#10B981'];
 
     return (
@@ -246,15 +253,18 @@ function PasswordStrength({ password }) {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.35rem' }}>
                 <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
-                    {labels.map((lbl, i) => (
-                        <span key={i} style={{
-                            fontSize: '11px',
-                            padding: '1px 6px',
-                            borderRadius: '4px',
-                            background: checks[i] ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)',
-                            color: checks[i] ? '#10B981' : 'rgba(255,255,255,0.3)',
-                        }}>
-                            {checks[i] ? '✓' : '·'} {lbl}
+                    {labels.map((label, index) => (
+                        <span
+                            key={label}
+                            style={{
+                                fontSize: '11px',
+                                padding: '1px 6px',
+                                borderRadius: '4px',
+                                background: checks[index] ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)',
+                                color: checks[index] ? '#10B981' : 'rgba(255,255,255,0.3)',
+                            }}
+                        >
+                            {checks[index] ? 'OK' : '...'} {label}
                         </span>
                     ))}
                 </div>
@@ -268,10 +278,14 @@ function PasswordStrength({ password }) {
     );
 }
 
-/* ─── Component ─── */
 function App() {
     const [form, setForm] = useState({
-        name: '', email: '', department: '', role: 'User', password: '', confirm: ''
+        name: '',
+        email: '',
+        departmentId: '',
+        role: '',
+        password: '',
+        confirm: '',
     });
     const [focused, setFocused] = useState({});
     const [showPw, setShowPw] = useState(false);
@@ -279,80 +293,167 @@ function App() {
     const [errors, setErrors] = useState({});
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
+    const [roles, setRoles] = useState([]);
+    const [departments, setDepartments] = useState([]);
+    const [optionsLoading, setOptionsLoading] = useState(true);
 
-    const set = (key) => (e) => setForm(f => ({ ...f, [key]: e.target.value }));
-    const onFocus = (key) => () => setFocused(f => ({ ...f, [key]: true }));
-    const onBlur = (key) => () => setFocused(f => ({ ...f, [key]: false }));
+    const set = (key) => (e) => setForm((current) => ({ ...current, [key]: e.target.value }));
+    const onFocus = (key) => () => setFocused((current) => ({ ...current, [key]: true }));
+    const onBlur = (key) => () => setFocused((current) => ({ ...current, [key]: false }));
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadRegisterOptions() {
+            try {
+                const response = await fetch(`${BASE_URL}/api/auth/register-options`, {
+                    headers: { Accept: 'application/json' },
+                });
+
+                if (!response.ok) {
+                    if (!cancelled) {
+                        setMessage(`Cannot load register options: ${response.status}`);
+                    }
+                    return;
+                }
+
+                const payload = await response.json();
+                const loadedRoles = Array.isArray(payload?.roles)
+                    ? payload.roles
+                        .map((item) => item?.roleName)
+                        .filter((item) => typeof item === 'string' && item.trim().length > 0)
+                    : [];
+
+                const loadedDepartments = Array.isArray(payload?.departments)
+                    ? payload.departments.filter(
+                        (item) =>
+                            item &&
+                            Number.isInteger(item.departmentId) &&
+                            item.departmentId > 0 &&
+                            typeof item.name === 'string'
+                    )
+                    : [];
+
+                if (cancelled) {
+                    return;
+                }
+
+                setRoles(loadedRoles);
+                setDepartments(loadedDepartments);
+                setForm((current) => ({
+                    ...current,
+                    role: current.role || loadedRoles[0] || '',
+                    departmentId: current.departmentId || (loadedDepartments[0]?.departmentId?.toString() ?? ''),
+                }));
+            } catch (error) {
+                if (!cancelled) {
+                    const details = error instanceof Error ? error.message : String(error);
+                    setMessage(`Register options error: ${details}`);
+                }
+            } finally {
+                if (!cancelled) {
+                    setOptionsLoading(false);
+                }
+            }
+        }
+
+        loadRegisterOptions();
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     function validate() {
-        const e = {};
-        if (!form.name.trim()) e.name = 'Họ tên không được để trống.';
-        if (!form.email.includes('@')) e.email = 'Email không hợp lệ.';
-        if (form.password.length < 8) e.password = 'Mật khẩu tối thiểu 8 ký tự.';
-        if (form.password !== form.confirm) e.confirm = 'Mật khẩu không khớp.';
-        if (!agree) e.agree = 'Bạn cần đồng ý điều khoản.';
-        return e;
+        const nextErrors = {};
+
+        if (!form.name.trim()) nextErrors.name = 'Name is required.';
+        if (!form.email.includes('@')) nextErrors.email = 'Email is invalid.';
+        if (!form.departmentId || Number(form.departmentId) <= 0) nextErrors.departmentId = 'Please choose a department.';
+        if (!form.role.trim()) nextErrors.role = 'Please choose a role.';
+        if (form.password.length < 8) nextErrors.password = 'Password must be at least 8 characters.';
+        if (form.password !== form.confirm) nextErrors.confirm = 'Passwords do not match.';
+        if (!agree) nextErrors.agree = 'You must accept terms.';
+
+        return nextErrors;
     }
 
-    async function submit(e) {
-        e.preventDefault();
+    async function submit(event) {
+        event.preventDefault();
 
-        const v = validate();
-        setErrors(v);
-        if (Object.keys(v).length) return;
+        const validationErrors = validate();
+        setErrors(validationErrors);
+        if (Object.keys(validationErrors).length > 0) {
+            return;
+        }
 
         setLoading(true);
-        setMessage('Đang tạo tài khoản...');
+        setMessage('Creating account...');
 
         try {
-            const response = await fetch('/api/auth/register', {
+            const response = await fetch(`${BASE_URL}/api/auth/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json',
+                    Accept: 'application/json',
                 },
                 body: JSON.stringify({
-                    fullName: form.name.trim(),
+                    name: form.name.trim(),
                     email: form.email.trim(),
-                    department: form.department.trim(),
-                    role: form.role,
                     password: form.password,
+                    role: form.role,
+                    departmentId: Number(form.departmentId),
+                    acceptedTerms: agree,
                 }),
             });
 
-            if (response.status === 409) { setMessage('Email này đã được đăng ký.'); return; }
-            if (response.status === 400) { setMessage('Thông tin không hợp lệ.'); return; }
-            if (!response.ok) { setMessage(`Đăng ký thất bại: ${response.status}`); return; }
+            const payload = await response.json().catch(() => null);
+            const apiMessage = typeof payload?.message === 'string' ? payload.message : '';
 
-            setMessage('Tài khoản đã được tạo! Vui lòng chờ Admin phê duyệt.');
-            setTimeout(() => { window.location.href = '/'; }, 2500);
+            if (response.status === 409) {
+                setMessage(apiMessage || 'This email is already registered.');
+                return;
+            }
+
+            if (response.status === 400) {
+                setMessage(apiMessage || 'Invalid registration data.');
+                return;
+            }
+
+            if (!response.ok) {
+                setMessage(apiMessage || `Registration failed: ${response.status}`);
+                return;
+            }
+
+            setMessage('Account created successfully. You can now sign in.');
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1800);
         } catch (error) {
             const details = error instanceof Error ? error.message : String(error);
-            setMessage('Register error: ' + details);
+            setMessage(`Register error: ${details}`);
         } finally {
             setLoading(false);
         }
     }
 
-    const isSuccess = message.includes('Tài khoản đã được tạo');
-    const isError = !isSuccess && (
-        message.toLowerCase().includes('error') ||
-        message.toLowerCase().includes('thất bại') ||
-        message.toLowerCase().includes('không hợp lệ') ||
-        message.toLowerCase().includes('đã được đăng ký')
-    );
+    const successText = 'Account created successfully.';
+    const isSuccess = message.includes(successText);
+    const lowerMessage = message.toLowerCase();
+    const isError =
+        !isSuccess &&
+        (lowerMessage.includes('error') ||
+            lowerMessage.includes('failed') ||
+            lowerMessage.includes('invalid') ||
+            lowerMessage.includes('already') ||
+            lowerMessage.includes('cannot'));
 
     return (
         <div style={appStyle()}>
-            {/* Background */}
             <div style={bgOrbStyle('-100px', '-60px', '440px', 'rgba(59,130,246,0.18)')} />
             <div style={bgOrbStyle('auto', 'auto', '320px', 'rgba(99,102,241,0.13)')} />
             <div style={gridOverlayStyle()} />
 
-            {/* Card */}
             <div style={cardStyle()}>
-
-                {/* Logo */}
                 <div style={logoRowStyle()}>
                     <div style={logoBadgeStyle()}>SS</div>
                     <div>
@@ -361,42 +462,52 @@ function App() {
                     </div>
                 </div>
 
-                <h1 style={headingStyle()}>Tạo tài khoản mới</h1>
-                <p style={subTextStyle()}>Điền thông tin để tham gia IdeaHub.</p>
+                <h1 style={headingStyle()}>Create account</h1>
+                <p style={subTextStyle()}>Fill in your details to join IdeaHub.</p>
 
                 <form onSubmit={submit}>
-
-                    {/* Name + Department */}
                     <div style={{ ...twoColStyle(), marginBottom: '1rem' }}>
                         <div>
-                            <label style={labelStyle()}>Họ và tên</label>
+                            <label style={labelStyle()}>Full name</label>
                             <input
                                 style={inputStyle(focused.name, !!errors.name)}
                                 value={form.name}
                                 onChange={set('name')}
                                 onFocus={onFocus('name')}
                                 onBlur={onBlur('name')}
-                                placeholder="Nguyễn Văn A"
+                                placeholder="Nguyen Van A"
                                 autoComplete="name"
                             />
                             {errors.name && <p style={errorTextStyle()}>{errors.name}</p>}
                         </div>
                         <div>
-                            <label style={labelStyle()}>Phòng ban</label>
-                            <input
-                                style={inputStyle(focused.department, false)}
-                                value={form.department}
-                                onChange={set('department')}
-                                onFocus={onFocus('department')}
-                                onBlur={onBlur('department')}
-                                placeholder="Marketing..."
-                            />
+                            <label style={labelStyle()}>Department</label>
+                            <select
+                                style={selectStyle(focused.departmentId, !!errors.departmentId)}
+                                value={form.departmentId}
+                                onChange={set('departmentId')}
+                                onFocus={onFocus('departmentId')}
+                                onBlur={onBlur('departmentId')}
+                            >
+                                <option value="" style={{ background: '#0F1C33', color: '#fff' }}>
+                                    {optionsLoading ? 'Loading...' : 'Choose department'}
+                                </option>
+                                {departments.map((department) => (
+                                    <option
+                                        key={department.departmentId}
+                                        value={department.departmentId}
+                                        style={{ background: '#0F1C33', color: '#fff' }}
+                                    >
+                                        {department.name}
+                                    </option>
+                                ))}
+                            </select>
+                            {errors.departmentId && <p style={errorTextStyle()}>{errors.departmentId}</p>}
                         </div>
                     </div>
 
-                    {/* Email */}
                     <div style={fieldStyle()}>
-                        <label style={labelStyle()}>Email công ty</label>
+                        <label style={labelStyle()}>Email</label>
                         <input
                             style={inputStyle(focused.email, !!errors.email)}
                             value={form.email}
@@ -409,25 +520,29 @@ function App() {
                         {errors.email && <p style={errorTextStyle()}>{errors.email}</p>}
                     </div>
 
-                    {/* Role */}
                     <div style={fieldStyle()}>
-                        <label style={labelStyle()}>Vai trò</label>
+                        <label style={labelStyle()}>Role</label>
                         <select
-                            style={selectStyle(focused.role)}
+                            style={selectStyle(focused.role, !!errors.role)}
                             value={form.role}
                             onChange={set('role')}
                             onFocus={onFocus('role')}
                             onBlur={onBlur('role')}
                         >
-                            {ROLES.map(r => (
-                                <option key={r} value={r} style={{ background: '#0F1C33', color: '#fff' }}>{r}</option>
+                            <option value="" style={{ background: '#0F1C33', color: '#fff' }}>
+                                {optionsLoading ? 'Loading...' : 'Choose role'}
+                            </option>
+                            {roles.map((role) => (
+                                <option key={role} value={role} style={{ background: '#0F1C33', color: '#fff' }}>
+                                    {role}
+                                </option>
                             ))}
                         </select>
+                        {errors.role && <p style={errorTextStyle()}>{errors.role}</p>}
                     </div>
 
-                    {/* Password */}
                     <div style={fieldStyle()}>
-                        <label style={labelStyle()}>Mật khẩu</label>
+                        <label style={labelStyle()}>Password</label>
                         <div style={{ position: 'relative' }}>
                             <input
                                 style={{ ...inputStyle(focused.password, !!errors.password), paddingRight: '2.8rem' }}
@@ -436,100 +551,125 @@ function App() {
                                 onChange={set('password')}
                                 onFocus={onFocus('password')}
                                 onBlur={onBlur('password')}
-                                placeholder="Tối thiểu 8 ký tự"
+                                placeholder="At least 8 characters"
                                 autoComplete="new-password"
                             />
                             <button
                                 type="button"
-                                onClick={() => setShowPw(!showPw)}
+                                onClick={() => setShowPw((current) => !current)}
                                 style={{
-                                    position: 'absolute', right: '0.75rem', top: '50%',
+                                    position: 'absolute',
+                                    right: '0.75rem',
+                                    top: '50%',
                                     transform: 'translateY(-50%)',
-                                    background: 'none', border: 'none', cursor: 'pointer',
-                                    fontSize: '14px', color: 'rgba(255,255,255,0.4)',
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    color: 'rgba(255,255,255,0.4)',
                                 }}
                             >
-                                {showPw ? '🙈' : '👁'}
+                                {showPw ? 'Hide' : 'Show'}
                             </button>
                         </div>
                         <PasswordStrength password={form.password} />
                         {errors.password && <p style={errorTextStyle()}>{errors.password}</p>}
                     </div>
 
-                    {/* Confirm Password */}
                     <div style={fieldStyle()}>
-                        <label style={labelStyle()}>Xác nhận mật khẩu</label>
+                        <label style={labelStyle()}>Confirm password</label>
                         <div style={{ position: 'relative' }}>
                             <input
                                 style={{
                                     ...inputStyle(focused.confirm, !!errors.confirm),
                                     paddingRight: '2.8rem',
-                                    borderColor: form.confirm && form.confirm === form.password
-                                        ? '#10B981'
-                                        : errors.confirm ? '#EF4444' : focused.confirm ? '#3B82F6' : 'rgba(255,255,255,0.1)',
+                                    borderColor:
+                                        form.confirm && form.confirm === form.password
+                                            ? '#10B981'
+                                            : errors.confirm
+                                                ? '#EF4444'
+                                                : focused.confirm
+                                                    ? '#3B82F6'
+                                                    : 'rgba(255,255,255,0.1)',
                                 }}
                                 type="password"
                                 value={form.confirm}
                                 onChange={set('confirm')}
                                 onFocus={onFocus('confirm')}
                                 onBlur={onBlur('confirm')}
-                                placeholder="Nhập lại mật khẩu"
+                                placeholder="Re-enter password"
                                 autoComplete="new-password"
                             />
                             {form.confirm && form.confirm === form.password && (
-                                <span style={{
-                                    position: 'absolute', right: '0.75rem', top: '50%',
-                                    transform: 'translateY(-50%)', color: '#10B981', fontSize: '14px',
-                                }}>✓</span>
+                                <span
+                                    style={{
+                                        position: 'absolute',
+                                        right: '0.75rem',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        color: '#10B981',
+                                        fontSize: '14px',
+                                    }}
+                                >
+                                    OK
+                                </span>
                             )}
                         </div>
                         {errors.confirm && <p style={errorTextStyle()}>{errors.confirm}</p>}
                     </div>
 
-                    {/* Terms */}
                     <div style={{ marginBottom: '1.4rem' }}>
                         <div
                             style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', cursor: 'pointer' }}
-                            onClick={() => setAgree(!agree)}
+                            onClick={() => setAgree((current) => !current)}
                         >
-                            <div style={{
-                                width: '16px', height: '16px', marginTop: '1px',
-                                border: `1.5px solid ${agree ? '#3B82F6' : errors.agree ? '#EF4444' : 'rgba(255,255,255,0.25)'}`,
-                                borderRadius: '4px',
-                                background: agree ? '#3B82F6' : 'transparent',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                flexShrink: 0, transition: 'all 0.2s',
-                            }}>
-                                {agree && <span style={{ color: '#fff', fontSize: '11px', lineHeight: 1 }}>✓</span>}
+                            <div
+                                style={{
+                                    width: '16px',
+                                    height: '16px',
+                                    marginTop: '1px',
+                                    border: `1.5px solid ${agree ? '#3B82F6' : errors.agree ? '#EF4444' : 'rgba(255,255,255,0.25)'}`,
+                                    borderRadius: '4px',
+                                    background: agree ? '#3B82F6' : 'transparent',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0,
+                                    transition: 'all 0.2s',
+                                }}
+                            >
+                                {agree && <span style={{ color: '#fff', fontSize: '10px', lineHeight: 1 }}>OK</span>}
                             </div>
                             <p style={{ margin: 0, fontSize: '12px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
-                                Tôi đồng ý với{' '}
-                                <span style={{ color: '#60A5FA' }}>Điều khoản sử dụng</span>
-                                {' '}và{' '}
-                                <span style={{ color: '#60A5FA' }}>Chính sách bảo mật</span>
-                                {' '}của IdeaHub.
+                                I agree with Terms of Use and Privacy Policy.
                             </p>
                         </div>
                         {errors.agree && <p style={errorTextStyle()}>{errors.agree}</p>}
                     </div>
 
-                    {/* Submit */}
-                    <button type="submit" style={btnPrimaryStyle(loading)} disabled={loading}>
-                        {loading ? 'Đang tạo tài khoản...' : 'Tạo tài khoản →'}
+                    <button
+                        type="submit"
+                        style={btnPrimaryStyle(loading || optionsLoading)}
+                        disabled={loading || optionsLoading}
+                    >
+                        {loading ? 'Creating account...' : 'Create account'}
                     </button>
                 </form>
 
-                {/* Login link */}
                 <p style={{ textAlign: 'center', marginTop: '1.2rem', marginBottom: 0 }}>
-                    <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '13px' }}>Đã có tài khoản? </span>
-                    <button style={linkBtnStyle()} onClick={() => { window.location.href = '/'; }}>
-                        Đăng nhập
+                    <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '13px' }}>Already have an account? </span>
+                    <button
+                        style={linkBtnStyle()}
+                        onClick={() => {
+                            window.location.href = '/';
+                        }}
+                    >
+                        Sign in
                     </button>
                 </p>
 
-                {/* Message */}
-                {message && message !== 'Đang tạo tài khoản...' && (
-                    <p style={msgStyle(isError)}>{isSuccess ? '✓ ' : isError ? '⚠ ' : ''}{message}</p>
+                {message && message !== 'Creating account...' && (
+                    <p style={msgStyle(isError)}>{isSuccess ? 'OK ' : isError ? '!' : ''}{message}</p>
                 )}
             </div>
         </div>

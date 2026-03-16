@@ -233,7 +233,7 @@ function App() {
             if (response.status === 400) { setMessage('Please provide both username and password.'); return; }
             if (!response.ok) { setMessage(`Login failed: ${response.status}`); return; }
 
-            const data = await response.json();            
+            const data = await response.json();
             setAuthSession(data.token, data.user);
 
             const destination = roleToPath(data.user?.role);
@@ -268,13 +268,13 @@ function App() {
                     </div>
                 </div>
 
-                <h1 style={headingStyle()}>Chào mừng trở lại 👋</h1>
-                <p style={subTextStyle()}>Đăng nhập để chia sẻ và khám phá ý tưởng.</p>
+                <h1 style={headingStyle()}>Welcome back</h1>
+                <p style={subTextStyle()}>Sign in to share and explore ideas.</p>
 
                 <form onSubmit={submit}>
                     {/* Username */}
                     <div style={{ marginBottom: '1rem' }}>
-                        <label style={labelStyle()}>Email / Tên đăng nhập</label>
+                        <label style={labelStyle()}>Email / Username</label>
                         <input
                             style={inputStyle(focusUser)}
                             value={username}
@@ -288,14 +288,14 @@ function App() {
 
                     {/* Password */}
                     <div style={{ marginBottom: 0, position: 'relative' }}>
-                        <label style={labelStyle()}>Mật khẩu</label>
+                        <label style={labelStyle()}>Password</label>
                         <div style={{ position: 'relative' }}>
                             <input
                                 style={{ ...inputStyle(focusPw), paddingRight: '2.8rem' }}
                                 type={showPw ? 'text' : 'password'}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                placeholder="••••••••"
+                                placeholder="******"
                                 onFocus={() => setFocusPw(true)}
                                 onBlur={() => setFocusPw(false)}
                                 autoComplete="current-password"
@@ -326,24 +326,24 @@ function App() {
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 transition: 'all 0.2s',
                             }}>
-                                {remember && <span style={{ color: '#fff', fontSize: '11px', lineHeight: 1 }}>✓</span>}
+                                {remember && <span style={{ color: '#fff', fontSize: '11px', lineHeight: 1 }}>âœ“</span>}
                             </div>
-                            <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: '13px' }}>Ghi nhớ đăng nhập</span>
+                            <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: '13px' }}>Remember me</span>
                         </div>
-                        <button type="button" style={linkBtnStyle()}>Quên mật khẩu?</button>
+                        <button type="button" style={linkBtnStyle()}>Forgot password?</button>
                     </div>
 
                     {/* Submit */}
                     <button type="submit" style={btnPrimaryStyle(loading)} disabled={loading}>
-                        {loading ? 'Đang đăng nhập...' : 'Đăng nhập →'}
+                        {loading ? 'Signing in...' : 'Sign in ->'}
                     </button>
                 </form>
 
                 {/* Register link */}
                 <p style={{ textAlign: 'center', marginTop: '1.2rem', marginBottom: 0 }}>
-                    <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '13px' }}>Chưa có tài khoản? </span>
+                    <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '13px' }}>Don't have an account? </span>
                     <button style={linkBtnStyle()} onClick={() => { window.location.href = '/register'; }}>
-                        Đăng ký ngay
+                        Register now
                     </button>
                 </p>
 

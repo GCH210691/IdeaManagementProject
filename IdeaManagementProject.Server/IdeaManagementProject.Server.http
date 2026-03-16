@@ -27,19 +27,35 @@ Content-Type: application/json
   "password": "Admin@123"
 }
 
-###
+### Get all ideas
+GET {{IdeaManagementProject_Server_HostAddress}}/api/ideas
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### Create idea
+POST {{IdeaManagementProject_Server_HostAddress}}/api/ideas
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Improve library quiet zones",
+  "content": "Create more quiet seating areas and extend weekend opening hours.",
+  "isAnonymous": false
+}
+
+### Get current user
 GET {{IdeaManagementProject_Server_HostAddress}}/api/auth/me
 Authorization: Bearer {{token}}
 Accept: application/json
 
-###
+### Admin ping
 GET {{IdeaManagementProject_Server_HostAddress}}/api/admin/ping
 Authorization: Bearer {{token}}
 
-###
+### Manager ping
 GET {{IdeaManagementProject_Server_HostAddress}}/api/manager/ping
 Authorization: Bearer {{token}}
 
-###
+### Staff ping
 GET {{IdeaManagementProject_Server_HostAddress}}/api/staff/ping
 Authorization: Bearer {{token}}

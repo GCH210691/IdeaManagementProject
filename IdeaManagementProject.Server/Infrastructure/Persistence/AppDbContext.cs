@@ -13,6 +13,9 @@ public class AppDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<Department> Departments => Set<Department>();
+    public DbSet<Idea> Ideas => Set<Idea>();
+    public DbSet<Category> Categories => Set<Category>();
+    public DbSet<IdeaCategory> IdeaCategories => Set<IdeaCategory>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -98,6 +101,90 @@ public class AppDbContext : DbContext
                 .WithMany(x => x.Users)
                 .HasForeignKey(x => x.RoleId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Idea>(entity =>
+        {
+            entity.ToTable("Idea");
+
+            entity.HasKey(x => x.IdeaId);
+            entity.Property(x => x.IdeaId).HasColumnName("idea_id");
+
+            entity.Property(x => x.Title)
+                .HasColumnName("title")
+                .HasMaxLength(250)
+                .IsRequired();
+
+            entity.Property(x => x.Content)
+                .HasColumnName("content")
+                .HasColumnType("longtext")
+                .IsRequired();
+
+            entity.Property(x => x.AuthorUserId)
+                .HasColumnName("author_user_id")
+                .IsRequired();
+
+            entity.Property(x => x.DepartmentId)
+                .HasColumnName("department_id")
+                .IsRequired();
+
+            entity.Property(x => x.IsAnonymous)
+                .HasColumnName("is_anonymous")
+                .IsRequired();
+
+            entity.Property(x => x.ViewCount)
+                .HasColumnName("view_count")
+                .HasDefaultValue(0)
+                .IsRequired();
+
+            entity.Property(x => x.CreatedAt)
+                .HasColumnName("created_at")
+                .IsRequired();
+
+            entity.HasOne(x => x.AuthorUser)
+                .WithMany(x => x.Ideas)
+                .HasForeignKey(x => x.AuthorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.Department)
+                .WithMany(x => x.Ideas)
+                .HasForeignKey(x => x.DepartmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Category>(entity =>
+        {
+            entity.ToTable("Category");
+
+            entity.HasKey(x => x.CategoryId);
+            entity.Property(x => x.CategoryId).HasColumnName("category_id");
+
+            entity.Property(x => x.Name)
+                .HasColumnName("name")
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.HasIndex(x => x.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<IdeaCategory>(entity =>
+        {
+            entity.ToTable("IdeaCategory");
+
+            entity.HasKey(x => new { x.IdeaId, x.CategoryId });
+
+            entity.Property(x => x.IdeaId).HasColumnName("idea_id");
+            entity.Property(x => x.CategoryId).HasColumnName("category_id");
+
+            entity.HasOne(x => x.Idea)
+                .WithMany(x => x.IdeaCategories)
+                .HasForeignKey(x => x.IdeaId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.Category)
+                .WithMany(x => x.IdeaCategories)
+                .HasForeignKey(x => x.CategoryId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

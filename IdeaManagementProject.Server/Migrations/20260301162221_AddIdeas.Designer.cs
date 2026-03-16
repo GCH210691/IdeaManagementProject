@@ -4,6 +4,7 @@ using IdeaManagementProject.Server.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace IdeaManagementProject.Server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260301162221_AddIdeas")]
+    partial class AddIdeas
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,29 +24,6 @@ namespace IdeaManagementProject.Server.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
-
-            modelBuilder.Entity("IdeaManagementProject.Server.Domain.Entities.Category", b =>
-                {
-                    b.Property<int>("CategoryId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("category_id");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("CategoryId"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)")
-                        .HasColumnName("name");
-
-                    b.HasKey("CategoryId");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("Category", (string)null);
-                });
 
             modelBuilder.Entity("IdeaManagementProject.Server.Domain.Entities.Department", b =>
                 {
@@ -120,23 +100,6 @@ namespace IdeaManagementProject.Server.Migrations
                     b.HasIndex("DepartmentId");
 
                     b.ToTable("Idea", (string)null);
-                });
-
-            modelBuilder.Entity("IdeaManagementProject.Server.Domain.Entities.IdeaCategory", b =>
-                {
-                    b.Property<int>("IdeaId")
-                        .HasColumnType("int")
-                        .HasColumnName("idea_id");
-
-                    b.Property<int>("CategoryId")
-                        .HasColumnType("int")
-                        .HasColumnName("category_id");
-
-                    b.HasKey("IdeaId", "CategoryId");
-
-                    b.HasIndex("CategoryId");
-
-                    b.ToTable("IdeaCategory", (string)null);
                 });
 
             modelBuilder.Entity("IdeaManagementProject.Server.Domain.Entities.Role", b =>
@@ -242,25 +205,6 @@ namespace IdeaManagementProject.Server.Migrations
                     b.Navigation("Department");
                 });
 
-            modelBuilder.Entity("IdeaManagementProject.Server.Domain.Entities.IdeaCategory", b =>
-                {
-                    b.HasOne("IdeaManagementProject.Server.Domain.Entities.Category", "Category")
-                        .WithMany("IdeaCategories")
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("IdeaManagementProject.Server.Domain.Entities.Idea", "Idea")
-                        .WithMany("IdeaCategories")
-                        .HasForeignKey("IdeaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Category");
-
-                    b.Navigation("Idea");
-                });
-
             modelBuilder.Entity("IdeaManagementProject.Server.Domain.Entities.User", b =>
                 {
                     b.HasOne("IdeaManagementProject.Server.Domain.Entities.Department", "Department")
@@ -280,21 +224,11 @@ namespace IdeaManagementProject.Server.Migrations
                     b.Navigation("Role");
                 });
 
-            modelBuilder.Entity("IdeaManagementProject.Server.Domain.Entities.Category", b =>
-                {
-                    b.Navigation("IdeaCategories");
-                });
-
             modelBuilder.Entity("IdeaManagementProject.Server.Domain.Entities.Department", b =>
                 {
                     b.Navigation("Ideas");
 
                     b.Navigation("Users");
-                });
-
-            modelBuilder.Entity("IdeaManagementProject.Server.Domain.Entities.Idea", b =>
-                {
-                    b.Navigation("IdeaCategories");
                 });
 
             modelBuilder.Entity("IdeaManagementProject.Server.Domain.Entities.Role", b =>
