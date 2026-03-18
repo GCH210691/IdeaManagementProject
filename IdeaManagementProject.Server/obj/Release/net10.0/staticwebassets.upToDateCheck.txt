@@ -1,2 +1,0 @@
-wwwroot\index.html
-C:\Users\admin\OneDrive\Documents\GitHub\IdeaManagementProject\IdeaManagementProject.Server\wwwroot\index.html
