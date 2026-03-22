@@ -320,18 +320,18 @@ function App() {
                 const payload = await response.json();
                 const loadedRoles = Array.isArray(payload?.roles)
                     ? payload.roles
-                          .map((item) => item?.roleName)
-                          .filter((item) => typeof item === 'string' && item.trim().length > 0)
+                        .map((item) => item?.roleName)
+                        .filter((item) => typeof item === 'string' && item.trim().length > 0)
                     : [];
 
                 const loadedDepartments = Array.isArray(payload?.departments)
                     ? payload.departments.filter(
-                          (item) =>
-                              item &&
-                              Number.isInteger(item.departmentId) &&
-                              item.departmentId > 0 &&
-                              typeof item.name === 'string'
-                      )
+                        (item) =>
+                            item &&
+                            Number.isInteger(item.departmentId) &&
+                            item.departmentId > 0 &&
+                            typeof item.name === 'string'
+                    )
                     : [];
 
                 if (cancelled) {
@@ -587,10 +587,10 @@ function App() {
                                         form.confirm && form.confirm === form.password
                                             ? '#10B981'
                                             : errors.confirm
-                                            ? '#EF4444'
-                                            : focused.confirm
-                                            ? '#3B82F6'
-                                            : 'rgba(255,255,255,0.1)',
+                                                ? '#EF4444'
+                                                : focused.confirm
+                                                    ? '#3B82F6'
+                                                    : 'rgba(255,255,255,0.1)',
                                 }}
                                 type="password"
                                 value={form.confirm}

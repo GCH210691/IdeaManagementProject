@@ -97,4 +97,3 @@ export function isDashboardRole(user) {
 export function canViewCategoryList(user) {
     return user?.role === 'QA_MANAGER';
 }
-

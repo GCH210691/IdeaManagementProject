@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { roleToPath, setAuthSession, BASE_URL } from './authStorage';
 
 /* ─── Styles (inline, matching project convention) ─── */
@@ -233,7 +233,7 @@ function App() {
             if (response.status === 400) { setMessage('Please provide both username and password.'); return; }
             if (!response.ok) { setMessage(`Login failed: ${response.status}`); return; }
 
-            const data = await response.json();            
+            const data = await response.json();
             setAuthSession(data.token, data.user);
 
             const destination = roleToPath(data.user?.role);
@@ -371,6 +371,3 @@ function App() {
 }
 
 export default App;
-
-
-
