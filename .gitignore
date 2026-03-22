@@ -13,3 +13,4 @@ obj/
 
 .dotnet/
 .tmp-category-build/
+/.tmp-build-check/

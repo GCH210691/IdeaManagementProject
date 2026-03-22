@@ -94,7 +94,6 @@ public class AuthService : IAuthService
         }
 
         var department = await _dbContext.Departments
-            .AsNoTracking()
             .FirstOrDefaultAsync(x => x.DepartmentId == input.DepartmentId, cancellationToken);
 
         if (department is null)

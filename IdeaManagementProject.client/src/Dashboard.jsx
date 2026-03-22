@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
     BASE_URL,
+    canManageIdea,
     getAuthHeaders,
     getAuthSession,
     getDisplayName,
@@ -177,7 +178,13 @@ function avatarStyle() {
     };
 }
 
-function tinyButtonStyle() {
+function tinyButtonStyle(tone = 'neutral') {
+    const map = {
+        neutral: { background: '#E5E7EB', color: '#111827' },
+        primary: { background: '#DBEAFE', color: '#1E40AF' },
+        danger: { background: '#FEE2E2', color: '#991B1B' },
+    };
+
     return {
         border: 'none',
         borderRadius: '6px',
@@ -186,8 +193,7 @@ function tinyButtonStyle() {
         fontWeight: 700,
         cursor: 'pointer',
         fontFamily: 'inherit',
-        background: '#E5E7EB',
-        color: '#111827',
+        ...map[tone],
     };
 }
 
@@ -236,6 +242,8 @@ export default function Dashboard() {
     const [tab, setTab] = useState('recent');
     const [ideas, setIdeas] = useState([]);
     const [message, setMessage] = useState('Loading dashboard data...');
+    const [actionMessage, setActionMessage] = useState('');
+    const [deletingId, setDeletingId] = useState(0);
 
     useEffect(() => {
         if (!session?.token || !user) {
@@ -332,6 +340,65 @@ export default function Dashboard() {
         window.location.href = `/ideas/${ideaId}`;
     }
 
+    function editIdea(idea) {
+        if (!canManageIdea(user, idea)) {
+            return;
+        }
+
+        window.location.href = `/ideas/${idea.ideaId}/edit`;
+    }
+
+    async function deleteIdea(idea) {
+        if (!canManageIdea(user, idea)) {
+            setActionMessage('You can only manage your own ideas.');
+            return;
+        }
+
+        if (!window.confirm(`Delete idea "${idea.title}"?`)) {
+            return;
+        }
+
+        setDeletingId(idea.ideaId);
+        setActionMessage('');
+
+        try {
+            const endpoint = BASE_URL ? `${BASE_URL}/api/ideas/${idea.ideaId}` : `/api/ideas/${idea.ideaId}`;
+            const response = await fetch(endpoint, {
+                method: 'DELETE',
+                headers: getAuthHeaders({ Accept: 'application/json' }),
+            });
+
+            if (response.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+
+            if (response.status === 403) {
+                setActionMessage('You can only manage your own ideas.');
+                return;
+            }
+
+            if (response.status === 404) {
+                setActionMessage('Idea not found.');
+                setIdeas((current) => current.filter((item) => item.ideaId !== idea.ideaId));
+                return;
+            }
+
+            if (!response.ok) {
+                setActionMessage(`Delete failed: ${response.status}`);
+                return;
+            }
+
+            setIdeas((current) => current.filter((item) => item.ideaId !== idea.ideaId));
+            setActionMessage('Idea deleted.');
+        } catch (error) {
+            const details = error instanceof Error ? error.message : String(error);
+            setActionMessage(`Delete error: ${details}`);
+        } finally {
+            setDeletingId(0);
+        }
+    }
+
     if (!session?.token || !user) {
         return null;
     }
@@ -379,6 +446,7 @@ export default function Dashboard() {
             </div>
 
             {message && <p style={{ color: '#B91C1C', marginTop: 0 }}>{message}</p>}
+            {actionMessage && <p style={{ color: actionMessage.includes('deleted') ? '#065F46' : '#B91C1C', marginTop: 0 }}>{actionMessage}</p>}
 
             {!message && ideaCards.length === 0 && (
                 <div style={sectionStyle()}>
@@ -388,7 +456,10 @@ export default function Dashboard() {
 
             {!message && ideaCards.length > 0 && (
                 <div style={ideasGridStyle()}>
-                    {ideaCards.map((idea, index) => (
+                    {ideaCards.map((idea, index) => {
+                        const allowManage = canManageIdea(user, idea);
+
+                        return (
                         <div key={idea.ideaId} style={ideaCardStyle()}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -407,9 +478,24 @@ export default function Dashboard() {
                                 <span>Views {idea.viewCount || 0}</span>
                                 <span>{idea.isAnonymous ? 'Anonymous' : 'Named'}</span>
                             </div>
-                            <button type="button" style={tinyButtonStyle()} onClick={() => viewIdea(idea.ideaId)}>View</button>
+                            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                <button type="button" style={tinyButtonStyle('neutral')} onClick={() => viewIdea(idea.ideaId)}>View</button>
+                                {allowManage && (
+                                    <>
+                                        <button type="button" style={tinyButtonStyle('primary')} onClick={() => editIdea(idea)}>Edit</button>
+                                        <button
+                                            type="button"
+                                            style={tinyButtonStyle('danger')}
+                                            onClick={() => deleteIdea(idea)}
+                                            disabled={deletingId === idea.ideaId}>
+                                            {deletingId === idea.ideaId ? 'Deleting...' : 'Delete'}
+                                        </button>
+                                    </>
+                                )}
+                            </div>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 

@@ -3,13 +3,17 @@
 public sealed record AdminDepartmentDto(
     int DepartmentId,
     string Name,
-    int? QaCoordinatorUserId,
-    string? QaCoordinatorName);
+    IReadOnlyList<AdminDepartmentCoordinatorDto> QaCoordinators);
+
+public sealed record AdminDepartmentCoordinatorDto(
+    int UserId,
+    string Name,
+    string Email);
 
 public sealed record CreateAdminDepartmentRequest(
     string? Name,
-    int? QaCoordinatorUserId);
+    IReadOnlyList<int>? QaCoordinatorUserIds);
 
 public sealed record UpdateAdminDepartmentRequest(
     string? Name,
-    int? QaCoordinatorUserId);
+    IReadOnlyList<int>? QaCoordinatorUserIds);

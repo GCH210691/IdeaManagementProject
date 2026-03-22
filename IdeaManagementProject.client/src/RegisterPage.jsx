@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { BASE_URL } from './authStorage';
 
+const ADMINISTRATION_DEPARTMENT_NAME = 'administration';
+const LOCKED_DEPARTMENT_ROLES = new Set(['ADMIN', 'QA_MANAGER']);
+
 function appStyle() {
     return {
         minHeight: '100vh',
@@ -300,6 +303,10 @@ function App() {
     const set = (key) => (e) => setForm((current) => ({ ...current, [key]: e.target.value }));
     const onFocus = (key) => () => setFocused((current) => ({ ...current, [key]: true }));
     const onBlur = (key) => () => setFocused((current) => ({ ...current, [key]: false }));
+    const administrationDepartment = departments.find(
+        (department) => department.name.trim().toLowerCase() === ADMINISTRATION_DEPARTMENT_NAME,
+    );
+    const lockDepartmentToAdministration = LOCKED_DEPARTMENT_ROLES.has(form.role);
 
     useEffect(() => {
         let cancelled = false;
@@ -363,12 +370,43 @@ function App() {
         };
     }, []);
 
+    useEffect(() => {
+        if (!administrationDepartment) {
+            return;
+        }
+
+        if (lockDepartmentToAdministration) {
+            setForm((current) => {
+                const administrationId = administrationDepartment.departmentId.toString();
+                return current.departmentId === administrationId
+                    ? current
+                    : { ...current, departmentId: administrationId };
+            });
+            return;
+        }
+
+        if (form.departmentId === administrationDepartment.departmentId.toString()) {
+            const firstAvailableDepartment = departments.find(
+                (department) => department.departmentId !== administrationDepartment.departmentId,
+            );
+
+            setForm((current) => ({
+                ...current,
+                departmentId: firstAvailableDepartment?.departmentId?.toString() ?? '',
+            }));
+        }
+    }, [administrationDepartment, departments, form.departmentId, lockDepartmentToAdministration]);
+
     function validate() {
         const nextErrors = {};
 
         if (!form.name.trim()) nextErrors.name = 'Name is required.';
         if (!form.email.includes('@')) nextErrors.email = 'Email is invalid.';
-        if (!form.departmentId || Number(form.departmentId) <= 0) nextErrors.departmentId = 'Please choose a department.';
+        if (!form.departmentId || Number(form.departmentId) <= 0) {
+            nextErrors.departmentId = lockDepartmentToAdministration
+                ? 'Administration department is required for this role.'
+                : 'Please choose a department.';
+        }
         if (!form.role.trim()) nextErrors.role = 'Please choose a role.';
         if (form.password.length < 8) nextErrors.password = 'Password must be at least 8 characters.';
         if (form.password !== form.confirm) nextErrors.confirm = 'Passwords do not match.';
@@ -483,11 +521,16 @@ function App() {
                         <div>
                             <label style={labelStyle()}>Department</label>
                             <select
-                                style={selectStyle(focused.departmentId, !!errors.departmentId)}
+                                style={{
+                                    ...selectStyle(focused.departmentId, !!errors.departmentId),
+                                    opacity: lockDepartmentToAdministration ? 0.7 : 1,
+                                    cursor: lockDepartmentToAdministration ? 'not-allowed' : 'pointer',
+                                }}
                                 value={form.departmentId}
                                 onChange={set('departmentId')}
                                 onFocus={onFocus('departmentId')}
                                 onBlur={onBlur('departmentId')}
+                                disabled={lockDepartmentToAdministration}
                             >
                                 <option value="" style={{ background: '#0F1C33', color: '#fff' }}>
                                     {optionsLoading ? 'Loading...' : 'Choose department'}
@@ -496,12 +539,22 @@ function App() {
                                     <option
                                         key={department.departmentId}
                                         value={department.departmentId}
+                                        disabled={
+                                            lockDepartmentToAdministration
+                                                ? department.departmentId !== administrationDepartment?.departmentId
+                                                : department.departmentId === administrationDepartment?.departmentId
+                                        }
                                         style={{ background: '#0F1C33', color: '#fff' }}
                                     >
                                         {department.name}
                                     </option>
                                 ))}
                             </select>
+                            {lockDepartmentToAdministration && administrationDepartment && (
+                                <p style={{ ...errorTextStyle(), color: 'rgba(255,255,255,0.45)' }}>
+                                    {form.role} is locked to the Administration department.
+                                </p>
+                            )}
                             {errors.departmentId && <p style={errorTextStyle()}>{errors.departmentId}</p>}
                         </div>
                     </div>
