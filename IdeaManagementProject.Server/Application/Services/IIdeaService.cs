@@ -7,6 +7,7 @@ public interface IIdeaService
     Task<IdeaView?> CreateIdeaAsync(CreateIdeaInput input, CancellationToken cancellationToken = default);
     Task<IdeaMutationResult> UpdateIdeaAsync(UpdateIdeaInput input, CancellationToken cancellationToken = default);
     Task<IdeaMutationStatus> DeleteIdeaAsync(DeleteIdeaInput input, CancellationToken cancellationToken = default);
+    Task<IdeaCommentView?> AddCommentAsync(AddIdeaCommentInput input, CancellationToken cancellationToken = default);
 }
 
 public sealed record CreateIdeaInput(int UserId, string Title, string Content, bool IsAnonymous, IReadOnlyList<int> CategoryIds);
@@ -14,6 +15,8 @@ public sealed record CreateIdeaInput(int UserId, string Title, string Content, b
 public sealed record UpdateIdeaInput(int IdeaId, int UserId, string Title, string Content, bool IsAnonymous, IReadOnlyList<int> CategoryIds);
 
 public sealed record DeleteIdeaInput(int IdeaId, int UserId);
+
+public sealed record AddIdeaCommentInput(int IdeaId, int UserId, string Content);
 
 public enum IdeaMutationStatus
 {
@@ -23,6 +26,13 @@ public enum IdeaMutationStatus
 }
 
 public sealed record IdeaMutationResult(IdeaMutationStatus Status, IdeaView? Idea);
+
+public sealed record IdeaCommentView(
+    int CommentId,
+    int AuthorUserId,
+    string AuthorName,
+    string Content,
+    DateTime CreatedAt);
 
 public sealed record IdeaView(
     int IdeaId,
@@ -36,4 +46,5 @@ public sealed record IdeaView(
     int ViewCount,
     DateTime CreatedAt,
     IReadOnlyList<string> Categories,
-    IReadOnlyList<int> CategoryIds);
+    IReadOnlyList<int> CategoryIds,
+    IReadOnlyList<IdeaCommentView> Comments);

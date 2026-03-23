@@ -32,6 +32,9 @@ export default function IdeaDetailsPage() {
     const invalidIdeaId = !ideaId;
     const [idea, setIdea] = useState(null);
     const [message, setMessage] = useState(invalidIdeaId ? 'Invalid idea id.' : 'Loading idea...');
+    const [commentText, setCommentText] = useState('');
+    const [commentMessage, setCommentMessage] = useState('');
+    const [sendingComment, setSendingComment] = useState(false);
 
     useEffect(() => {
         if (!session?.token || !user) {
@@ -94,6 +97,57 @@ export default function IdeaDetailsPage() {
         window.location.href = `/ideas/${ideaId}/edit`;
     }
 
+    async function submitComment() {
+        if (!commentText.trim()) {
+            setCommentMessage('Comment content is required.');
+            return;
+        }
+
+        setSendingComment(true);
+        setCommentMessage('');
+
+        try {
+            const response = await fetch(`/api/ideas/${ideaId}/comments`, {
+                method: 'POST',
+                headers: getAuthHeaders({
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                }),
+                body: JSON.stringify({ content: commentText.trim() }),
+            });
+
+            if (response.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+
+            const payload = await response.json().catch(() => null);
+            if (!response.ok) {
+                setCommentMessage(payload?.message || `Comment failed: ${response.status}`);
+                return;
+            }
+
+            setIdea((current) => {
+                if (!current) {
+                    return current;
+                }
+
+                const currentComments = Array.isArray(current.comments) ? current.comments : [];
+                return {
+                    ...current,
+                    comments: [...currentComments, payload],
+                };
+            });
+            setCommentText('');
+            setCommentMessage('Comment sent.');
+        } catch (error) {
+            const details = error instanceof Error ? error.message : String(error);
+            setCommentMessage('Comment error: ' + details);
+        } finally {
+            setSendingComment(false);
+        }
+    }
+
     if (!session?.token || !user) {
         return null;
     }
@@ -115,6 +169,41 @@ export default function IdeaDetailsPage() {
                         <p><strong>Anonymous:</strong> {idea.isAnonymous ? 'Yes' : 'No'}</p>
                         <p><strong>Views:</strong> {idea.viewCount}</p>
                         <p><strong>Created:</strong> {new Date(idea.createdAt).toLocaleString()}</p>
+
+                        <hr />
+
+                        <h2>Comments</h2>
+                        <p>
+                            <textarea
+                                value={commentText}
+                                onChange={(event) => setCommentText(event.target.value)}
+                                rows={4}
+                                placeholder="Write a comment..."
+                                style={{ width: '100%', boxSizing: 'border-box' }}
+                            />
+                        </p>
+                        <p>
+                            <button type="button" onClick={submitComment} disabled={sendingComment}>
+                                {sendingComment ? 'Sending...' : 'Send'}
+                            </button>
+                        </p>
+                        {commentMessage && <p>{commentMessage}</p>}
+
+                        {!Array.isArray(idea.comments) || idea.comments.length === 0 ? (
+                            <p>no comment yet</p>
+                        ) : (
+                            <div>
+                                {idea.comments.map((comment) => (
+                                    <div key={comment.commentId} style={{ marginBottom: '1rem' }}>
+                                        <div>
+                                            <strong>{comment.authorName}</strong>{' '}
+                                            <span>{new Date(comment.createdAt).toLocaleString()}</span>
+                                        </div>
+                                        <div style={{ whiteSpace: 'pre-wrap' }}>{comment.content}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </>
                 )}
 

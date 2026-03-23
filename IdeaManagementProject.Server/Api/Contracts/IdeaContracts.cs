@@ -4,6 +4,15 @@ public sealed record CreateIdeaRequest(string? Title, string? Content, bool IsAn
 
 public sealed record UpdateIdeaRequest(string? Title, string? Content, bool IsAnonymous, IReadOnlyList<int>? CategoryIds);
 
+public sealed record CreateIdeaCommentRequest(string? Content);
+
+public sealed record IdeaCommentDto(
+    int CommentId,
+    int AuthorUserId,
+    string AuthorName,
+    string Content,
+    DateTime CreatedAt);
+
 public sealed record IdeaDto(
     int IdeaId,
     string Title,
@@ -16,4 +25,5 @@ public sealed record IdeaDto(
     int ViewCount,
     DateTime CreatedAt,
     IReadOnlyList<string> Categories,
-    IReadOnlyList<int> CategoryIds);
+    IReadOnlyList<int> CategoryIds,
+    IReadOnlyList<IdeaCommentDto> Comments);

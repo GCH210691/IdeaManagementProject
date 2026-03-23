@@ -42,6 +42,31 @@ public class IdeasController : ControllerBase
         return Ok(ToDto(idea));
     }
 
+    [HttpPost("{ideaId:int}/comments")]
+    public async Task<IActionResult> AddComment(int ideaId, [FromBody] CreateIdeaCommentRequest? request, CancellationToken cancellationToken)
+    {
+        if (request is null || string.IsNullOrWhiteSpace(request.Content))
+        {
+            return BadRequest(new { message = "Comment content is required." });
+        }
+
+        if (!TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var comment = await _ideaService.AddCommentAsync(
+            new AddIdeaCommentInput(ideaId, userId, request.Content),
+            cancellationToken);
+
+        if (comment is null)
+        {
+            return NotFound(new { message = "Idea not found." });
+        }
+
+        return StatusCode(201, ToDto(comment));
+    }
+
     [HttpPost]
     [Authorize(Roles = "STAFF,QA_COORDINATOR")]
     public async Task<IActionResult> CreateIdea([FromBody] CreateIdeaRequest? request, CancellationToken cancellationToken)
@@ -167,6 +192,17 @@ public class IdeasController : ControllerBase
             idea.ViewCount,
             idea.CreatedAt,
             idea.Categories,
-            idea.CategoryIds);
+            idea.CategoryIds,
+            idea.Comments.Select(ToDto).ToList());
+    }
+
+    private static IdeaCommentDto ToDto(IdeaCommentView comment)
+    {
+        return new IdeaCommentDto(
+            comment.CommentId,
+            comment.AuthorUserId,
+            comment.AuthorName,
+            comment.Content,
+            comment.CreatedAt);
     }
 }

@@ -97,6 +97,11 @@ public static class DbInitializer
             {
                 MigrationId = "20260315174923_AddCategories",
                 RequiredTables = new[] { "Category", "IdeaCategory" }
+            },
+            new
+            {
+                MigrationId = "20260323173517_AddComments",
+                RequiredTables = new[] { "Comment" }
             }
         };
 

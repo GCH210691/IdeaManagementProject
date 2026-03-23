@@ -114,6 +114,9 @@ export default function StaffShell({ activeMenu, footerText, children }) {
         ...(canCreateIdeas(user) ? [{ id: 'create', icon: 'CI', label: 'Create idea', path: '/ideas/create' }] : []),
         ...(canCreateIdeas(user) ? [{ id: 'myideas', icon: 'MY', label: 'My ideas', path: '/staff/my-ideas' }] : []),
         { id: 'departments', icon: 'DP', label: 'Departments', path: '/staff/departments' },
+        ...(user?.role === 'QA_COORDINATOR'
+            ? [{ id: 'department-management', icon: 'DM', label: 'Department management', path: '/qa-coordinator/department-management' }]
+            : []),
         ...(canViewCategoryList(user) ? [{ id: 'categories', icon: 'CL', label: 'Category list', path: '/qa-manager/categories' }] : []),
     ];
 

@@ -16,6 +16,7 @@ public class AppDbContext : DbContext
     public DbSet<Idea> Ideas => Set<Idea>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<IdeaCategory> IdeaCategories => Set<IdeaCategory>();
+    public DbSet<Comment> Comments => Set<Comment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -149,6 +150,41 @@ public class AppDbContext : DbContext
             entity.HasOne(x => x.Department)
                 .WithMany(x => x.Ideas)
                 .HasForeignKey(x => x.DepartmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Comment>(entity =>
+        {
+            entity.ToTable("Comment");
+
+            entity.HasKey(x => x.CommentId);
+            entity.Property(x => x.CommentId).HasColumnName("comment_id");
+
+            entity.Property(x => x.IdeaId)
+                .HasColumnName("idea_id")
+                .IsRequired();
+
+            entity.Property(x => x.AuthorUserId)
+                .HasColumnName("author_user_id")
+                .IsRequired();
+
+            entity.Property(x => x.Content)
+                .HasColumnName("content")
+                .HasColumnType("longtext")
+                .IsRequired();
+
+            entity.Property(x => x.CreatedAt)
+                .HasColumnName("created_at")
+                .IsRequired();
+
+            entity.HasOne(x => x.Idea)
+                .WithMany(x => x.Comments)
+                .HasForeignKey(x => x.IdeaId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.AuthorUser)
+                .WithMany(x => x.Comments)
+                .HasForeignKey(x => x.AuthorUserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 

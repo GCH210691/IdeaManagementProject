@@ -24,7 +24,7 @@ public class IdeaService : IIdeaService
             .OrderByDescending(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        return ideas.Select(ToView).ToList();
+        return ideas.Select(x => ToView(x, includeComments: false)).ToList();
     }
 
     public async Task<IdeaView?> GetIdeaByIdAsync(int ideaId, bool incrementViewCount = false, CancellationToken cancellationToken = default)
@@ -37,9 +37,11 @@ public class IdeaService : IIdeaService
                 .Include(x => x.Department)
                 .Include(x => x.IdeaCategories)
                     .ThenInclude(x => x.Category)
+                .Include(x => x.Comments)
+                    .ThenInclude(x => x.AuthorUser)
                 .FirstOrDefaultAsync(x => x.IdeaId == ideaId, cancellationToken);
 
-            return ideaSnapshot is null ? null : ToView(ideaSnapshot);
+            return ideaSnapshot is null ? null : ToView(ideaSnapshot, includeComments: true);
         }
 
         var idea = await _dbContext.Ideas
@@ -47,6 +49,8 @@ public class IdeaService : IIdeaService
             .Include(x => x.Department)
             .Include(x => x.IdeaCategories)
                 .ThenInclude(x => x.Category)
+            .Include(x => x.Comments)
+                .ThenInclude(x => x.AuthorUser)
             .FirstOrDefaultAsync(x => x.IdeaId == ideaId, cancellationToken);
 
         if (idea is null)
@@ -57,7 +61,7 @@ public class IdeaService : IIdeaService
         idea.ViewCount += 1;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return ToView(idea);
+        return ToView(idea, includeComments: true);
     }
 
     public async Task<IdeaView?> CreateIdeaAsync(CreateIdeaInput input, CancellationToken cancellationToken = default)
@@ -107,7 +111,7 @@ public class IdeaService : IIdeaService
         idea.AuthorUser = user;
         idea.Department = user.Department;
 
-        return ToView(idea);
+        return ToView(idea, includeComments: false);
     }
 
     public async Task<IdeaMutationResult> UpdateIdeaAsync(UpdateIdeaInput input, CancellationToken cancellationToken = default)
@@ -169,7 +173,7 @@ public class IdeaService : IIdeaService
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return new IdeaMutationResult(IdeaMutationStatus.Success, ToView(idea));
+        return new IdeaMutationResult(IdeaMutationStatus.Success, ToView(idea, includeComments: false));
     }
 
     public async Task<IdeaMutationStatus> DeleteIdeaAsync(DeleteIdeaInput input, CancellationToken cancellationToken = default)
@@ -193,11 +197,63 @@ public class IdeaService : IIdeaService
         return IdeaMutationStatus.Success;
     }
 
-    private static IdeaView ToView(Idea idea)
+    public async Task<IdeaCommentView?> AddCommentAsync(AddIdeaCommentInput input, CancellationToken cancellationToken = default)
+    {
+        var user = await _dbContext.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.UserId == input.UserId, cancellationToken);
+
+        if (user is null)
+        {
+            return null;
+        }
+
+        var ideaExists = await _dbContext.Ideas
+            .AsNoTracking()
+            .AnyAsync(x => x.IdeaId == input.IdeaId, cancellationToken);
+
+        if (!ideaExists)
+        {
+            return null;
+        }
+
+        var comment = new Comment
+        {
+            IdeaId = input.IdeaId,
+            AuthorUserId = input.UserId,
+            Content = input.Content.Trim(),
+            CreatedAt = DateTime.UtcNow,
+        };
+
+        _dbContext.Comments.Add(comment);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return new IdeaCommentView(
+            comment.CommentId,
+            user.UserId,
+            user.Name,
+            comment.Content,
+            comment.CreatedAt);
+    }
+
+    private static IdeaView ToView(Idea idea, bool includeComments)
     {
         var orderedCategories = idea.IdeaCategories
             .OrderBy(x => x.Category.Name)
             .ToList();
+
+        var orderedComments = includeComments
+            ? idea.Comments
+                .OrderBy(x => x.CreatedAt)
+                .ThenBy(x => x.CommentId)
+                .Select(x => new IdeaCommentView(
+                    x.CommentId,
+                    x.AuthorUserId,
+                    x.AuthorUser.Name,
+                    x.Content,
+                    x.CreatedAt))
+                .ToList()
+            : [];
 
         return new IdeaView(
             idea.IdeaId,
@@ -211,6 +267,7 @@ public class IdeaService : IIdeaService
             idea.ViewCount,
             idea.CreatedAt,
             orderedCategories.Select(x => x.Category.Name).ToList(),
-            orderedCategories.Select(x => x.CategoryId).ToList());
+            orderedCategories.Select(x => x.CategoryId).ToList(),
+            orderedComments);
     }
 }
