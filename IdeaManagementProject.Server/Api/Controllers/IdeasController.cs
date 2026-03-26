@@ -26,7 +26,7 @@ public class IdeasController : ControllerBase
     public async Task<IActionResult> GetIdeas(CancellationToken cancellationToken)
     {
         var ideas = await _ideaService.GetIdeasAsync(cancellationToken);
-        var response = ideas.Select(ToDto).ToList();
+        var response = ideas.Select(x => ToDto(x, 0)).ToList();
         return Ok(response);
     }
 
@@ -39,7 +39,8 @@ public class IdeasController : ControllerBase
             return NotFound(new { message = "Idea not found." });
         }
 
-        return Ok(ToDto(idea));
+        var currentUserVote = await GetCurrentUserVoteAsync(ideaId, cancellationToken);
+        return Ok(ToDto(idea, currentUserVote));
     }
 
     [HttpPost("{ideaId:int}/comments")]
@@ -65,6 +66,31 @@ public class IdeasController : ControllerBase
         }
 
         return StatusCode(201, ToDto(comment));
+    }
+
+    [HttpPut("{ideaId:int}/vote")]
+    public async Task<IActionResult> CastVote(int ideaId, [FromBody] CastIdeaVoteRequest? request, CancellationToken cancellationToken)
+    {
+        if (request?.Value is null || (request.Value.Value != -1 && request.Value.Value != 0 && request.Value.Value != 1))
+        {
+            return BadRequest(new { message = "Vote value must be -1, 0, or 1." });
+        }
+
+        if (!TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var voteSummary = await _ideaService.CastVoteAsync(
+            new CastIdeaVoteInput(ideaId, userId, request.Value.Value),
+            cancellationToken);
+
+        if (voteSummary is null)
+        {
+            return NotFound(new { message = "Idea not found." });
+        }
+
+        return Ok(ToDto(voteSummary));
     }
 
     [HttpPost]
@@ -96,7 +122,7 @@ public class IdeasController : ControllerBase
             return NotFound(new { message = "User not found." });
         }
 
-        return StatusCode(201, ToDto(createdIdea));
+        return StatusCode(201, ToDto(createdIdea, 0));
     }
 
     [HttpPut("{ideaId:int}")]
@@ -127,7 +153,7 @@ public class IdeasController : ControllerBase
         {
             IdeaMutationStatus.NotFound => NotFound(new { message = "Idea not found." }),
             IdeaMutationStatus.Forbidden => StatusCode(403, new { message = "You can only edit your own ideas." }),
-            _ => Ok(ToDto(result.Idea!))
+            _ => Ok(ToDto(result.Idea!, 0))
         };
     }
 
@@ -178,7 +204,23 @@ public class IdeasController : ControllerBase
             .ToList();
     }
 
-    private static IdeaDto ToDto(IdeaView idea)
+    private async Task<int> GetCurrentUserVoteAsync(int ideaId, CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var userId))
+        {
+            return 0;
+        }
+
+        var vote = await _dbContext.Votes
+            .AsNoTracking()
+            .Where(x => x.IdeaId == ideaId && x.UserId == userId)
+            .Select(x => (int?)x.Value)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return vote ?? 0;
+    }
+
+    private static IdeaDto ToDto(IdeaView idea, int currentUserVote)
     {
         return new IdeaDto(
             idea.IdeaId,
@@ -190,6 +232,9 @@ public class IdeasController : ControllerBase
             idea.DepartmentName,
             idea.IsAnonymous,
             idea.ViewCount,
+            idea.UpvoteCount,
+            idea.DownvoteCount,
+            currentUserVote,
             idea.CreatedAt,
             idea.Categories,
             idea.CategoryIds,
@@ -202,7 +247,16 @@ public class IdeasController : ControllerBase
             comment.CommentId,
             comment.AuthorUserId,
             comment.AuthorName,
+            comment.AuthorRole,
             comment.Content,
             comment.CreatedAt);
+    }
+
+    private static IdeaVoteSummaryDto ToDto(IdeaVoteSummaryView voteSummary)
+    {
+        return new IdeaVoteSummaryDto(
+            voteSummary.UpvoteCount,
+            voteSummary.DownvoteCount,
+            voteSummary.CurrentUserVote);
     }
 }

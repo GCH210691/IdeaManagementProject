@@ -6,12 +6,20 @@ public sealed record UpdateIdeaRequest(string? Title, string? Content, bool IsAn
 
 public sealed record CreateIdeaCommentRequest(string? Content);
 
+public sealed record CastIdeaVoteRequest(int? Value);
+
 public sealed record IdeaCommentDto(
     int CommentId,
     int AuthorUserId,
     string AuthorName,
+    string AuthorRole,
     string Content,
     DateTime CreatedAt);
+
+public sealed record IdeaVoteSummaryDto(
+    int UpvoteCount,
+    int DownvoteCount,
+    int CurrentUserVote);
 
 public sealed record IdeaDto(
     int IdeaId,
@@ -23,6 +31,9 @@ public sealed record IdeaDto(
     string DepartmentName,
     bool IsAnonymous,
     int ViewCount,
+    int UpvoteCount,
+    int DownvoteCount,
+    int CurrentUserVote,
     DateTime CreatedAt,
     IReadOnlyList<string> Categories,
     IReadOnlyList<int> CategoryIds,

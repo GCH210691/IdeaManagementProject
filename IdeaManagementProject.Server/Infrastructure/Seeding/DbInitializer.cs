@@ -102,6 +102,11 @@ public static class DbInitializer
             {
                 MigrationId = "20260323173517_AddComments",
                 RequiredTables = new[] { "Comment" }
+            },
+            new
+            {
+                MigrationId = "20260326151611_AddVotes",
+                RequiredTables = new[] { "Vote" }
             }
         };
 

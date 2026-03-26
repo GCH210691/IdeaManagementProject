@@ -25,6 +25,15 @@ function getIdeaIdFromPath() {
     return match ? Number(match[1]) : 0;
 }
 
+function formatRole(role) {
+    return String(role || '')
+        .toLowerCase()
+        .split('_')
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+}
+
 export default function IdeaDetailsPage() {
     const session = useMemo(() => getAuthSession(), []);
     const user = session?.user;
@@ -35,6 +44,8 @@ export default function IdeaDetailsPage() {
     const [commentText, setCommentText] = useState('');
     const [commentMessage, setCommentMessage] = useState('');
     const [sendingComment, setSendingComment] = useState(false);
+    const [voteMessage, setVoteMessage] = useState('');
+    const [sendingVote, setSendingVote] = useState(false);
 
     useEffect(() => {
         if (!session?.token || !user) {
@@ -148,6 +159,52 @@ export default function IdeaDetailsPage() {
         }
     }
 
+    async function submitVote(value) {
+        setSendingVote(true);
+        setVoteMessage('');
+
+        try {
+            const response = await fetch(`/api/ideas/${ideaId}/vote`, {
+                method: 'PUT',
+                headers: getAuthHeaders({
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                }),
+                body: JSON.stringify({ value }),
+            });
+
+            if (response.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+
+            const payload = await response.json().catch(() => null);
+            if (!response.ok) {
+                setVoteMessage(payload?.message || `Vote failed: ${response.status}`);
+                return;
+            }
+
+            setIdea((current) => {
+                if (!current) {
+                    return current;
+                }
+
+                return {
+                    ...current,
+                    upvoteCount: payload.upvoteCount,
+                    downvoteCount: payload.downvoteCount,
+                    currentUserVote: payload.currentUserVote,
+                };
+            });
+            setVoteMessage('Vote updated.');
+        } catch (error) {
+            const details = error instanceof Error ? error.message : String(error);
+            setVoteMessage('Vote error: ' + details);
+        } finally {
+            setSendingVote(false);
+        }
+    }
+
     if (!session?.token || !user) {
         return null;
     }
@@ -168,7 +225,17 @@ export default function IdeaDetailsPage() {
                         <p><strong>Department:</strong> {idea.departmentName}</p>
                         <p><strong>Anonymous:</strong> {idea.isAnonymous ? 'Yes' : 'No'}</p>
                         <p><strong>Views:</strong> {idea.viewCount}</p>
+                        <p><strong>Votes:</strong> {idea.upvoteCount} upvote(s), {idea.downvoteCount} downvote(s)</p>
                         <p><strong>Created:</strong> {new Date(idea.createdAt).toLocaleString()}</p>
+                        <p>
+                            <button type="button" onClick={() => submitVote(1)} disabled={sendingVote}>
+                                {idea.currentUserVote === 1 ? 'Remove upvote' : 'Upvote'}
+                            </button>
+                            <button type="button" onClick={() => submitVote(-1)} disabled={sendingVote} style={{ marginLeft: '0.75rem' }}>
+                                {idea.currentUserVote === -1 ? 'Remove downvote' : 'Downvote'}
+                            </button>
+                        </p>
+                        {voteMessage && <p>{voteMessage}</p>}
 
                         <hr />
 
@@ -197,6 +264,7 @@ export default function IdeaDetailsPage() {
                                     <div key={comment.commentId} style={{ marginBottom: '1rem' }}>
                                         <div>
                                             <strong>{comment.authorName}</strong>{' '}
+                                            <span>[{formatRole(comment.authorRole)}]</span>{' '}
                                             <span>{new Date(comment.createdAt).toLocaleString()}</span>
                                         </div>
                                         <div style={{ whiteSpace: 'pre-wrap' }}>{comment.content}</div>

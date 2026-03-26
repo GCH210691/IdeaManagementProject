@@ -37,8 +37,10 @@ public class IdeaService : IIdeaService
                 .Include(x => x.Department)
                 .Include(x => x.IdeaCategories)
                     .ThenInclude(x => x.Category)
+                .Include(x => x.Votes)
                 .Include(x => x.Comments)
                     .ThenInclude(x => x.AuthorUser)
+                        .ThenInclude(x => x.Role)
                 .FirstOrDefaultAsync(x => x.IdeaId == ideaId, cancellationToken);
 
             return ideaSnapshot is null ? null : ToView(ideaSnapshot, includeComments: true);
@@ -49,8 +51,10 @@ public class IdeaService : IIdeaService
             .Include(x => x.Department)
             .Include(x => x.IdeaCategories)
                 .ThenInclude(x => x.Category)
+            .Include(x => x.Votes)
             .Include(x => x.Comments)
                 .ThenInclude(x => x.AuthorUser)
+                    .ThenInclude(x => x.Role)
             .FirstOrDefaultAsync(x => x.IdeaId == ideaId, cancellationToken);
 
         if (idea is null)
@@ -201,6 +205,7 @@ public class IdeaService : IIdeaService
     {
         var user = await _dbContext.Users
             .AsNoTracking()
+            .Include(x => x.Role)
             .FirstOrDefaultAsync(x => x.UserId == input.UserId, cancellationToken);
 
         if (user is null)
@@ -232,8 +237,66 @@ public class IdeaService : IIdeaService
             comment.CommentId,
             user.UserId,
             user.Name,
+            user.Role.RoleName,
             comment.Content,
             comment.CreatedAt);
+    }
+
+    public async Task<IdeaVoteSummaryView?> CastVoteAsync(CastIdeaVoteInput input, CancellationToken cancellationToken = default)
+    {
+        var ideaExists = await _dbContext.Ideas
+            .AsNoTracking()
+            .AnyAsync(x => x.IdeaId == input.IdeaId, cancellationToken);
+
+        if (!ideaExists)
+        {
+            return null;
+        }
+
+        var existingVote = await _dbContext.Votes
+            .FirstOrDefaultAsync(x => x.IdeaId == input.IdeaId && x.UserId == input.UserId, cancellationToken);
+
+        var currentUserVote = input.Value;
+
+        if (input.Value == 0)
+        {
+            if (existingVote is not null)
+            {
+                _dbContext.Votes.Remove(existingVote);
+            }
+
+            currentUserVote = 0;
+        }
+        else if (existingVote is null)
+        {
+            _dbContext.Votes.Add(new Vote
+            {
+                IdeaId = input.IdeaId,
+                UserId = input.UserId,
+                Value = input.Value,
+            });
+        }
+        else if (existingVote.Value == input.Value)
+        {
+            _dbContext.Votes.Remove(existingVote);
+            currentUserVote = 0;
+        }
+        else
+        {
+            existingVote.Value = input.Value;
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        var votes = await _dbContext.Votes
+            .AsNoTracking()
+            .Where(x => x.IdeaId == input.IdeaId)
+            .ToListAsync(cancellationToken);
+
+        return new IdeaVoteSummaryView(
+            votes.Count(x => x.Value > 0),
+            votes.Count(x => x.Value < 0),
+            currentUserVote);
     }
 
     private static IdeaView ToView(Idea idea, bool includeComments)
@@ -241,6 +304,9 @@ public class IdeaService : IIdeaService
         var orderedCategories = idea.IdeaCategories
             .OrderBy(x => x.Category.Name)
             .ToList();
+
+        var upvoteCount = idea.Votes.Count(x => x.Value > 0);
+        var downvoteCount = idea.Votes.Count(x => x.Value < 0);
 
         var orderedComments = includeComments
             ? idea.Comments
@@ -250,6 +316,7 @@ public class IdeaService : IIdeaService
                     x.CommentId,
                     x.AuthorUserId,
                     x.AuthorUser.Name,
+                    x.AuthorUser.Role.RoleName,
                     x.Content,
                     x.CreatedAt))
                 .ToList()
@@ -265,6 +332,8 @@ public class IdeaService : IIdeaService
             idea.Department.Name,
             idea.IsAnonymous,
             idea.ViewCount,
+            upvoteCount,
+            downvoteCount,
             idea.CreatedAt,
             orderedCategories.Select(x => x.Category.Name).ToList(),
             orderedCategories.Select(x => x.CategoryId).ToList(),
