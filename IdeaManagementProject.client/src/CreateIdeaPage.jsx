@@ -79,6 +79,7 @@ export default function CreateIdeaPage() {
     const [isAnonymous, setIsAnonymous] = useState(false);
     const [categoryOptions, setCategoryOptions] = useState([]);
     const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
+    const [selectedFiles, setSelectedFiles] = useState([]);
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -142,18 +143,23 @@ export default function CreateIdeaPage() {
         setMessage('Creating idea...');
 
         try {
+            const formData = new FormData();
+            formData.append('title', title.trim());
+            formData.append('content', content.trim());
+            formData.append('isAnonymous', String(isAnonymous));
+
+            selectedCategoryIds.forEach((categoryId) => {
+                formData.append('categoryIds', String(categoryId));
+            });
+
+            selectedFiles.forEach((file) => {
+                formData.append('files', file);
+            });
+
             const response = await fetch('/api/ideas', {
                 method: 'POST',
-                headers: getAuthHeaders({
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                }),
-                body: JSON.stringify({
-                    title: title.trim(),
-                    content: content.trim(),
-                    isAnonymous,
-                    categoryIds: selectedCategoryIds,
-                }),
+                headers: getAuthHeaders({ Accept: 'application/json' }),
+                body: formData,
             });
 
             if (response.status === 401) {
@@ -239,6 +245,22 @@ export default function CreateIdeaPage() {
                         <span style={{ display: 'block', marginTop: '0.35rem', fontSize: '12px', color: '#6B7280' }}>
                             Hold Ctrl or Command to select multiple categories.
                         </span>
+                    </p>
+
+                    <p>
+                        <label>
+                            <span style={{ display: 'block', marginBottom: '0.45rem', fontSize: '12px', fontWeight: 700, color: '#6B7280' }}>Attachments</span>
+                            <input
+                                type="file"
+                                multiple
+                                onChange={(event) => setSelectedFiles(Array.from(event.target.files ?? []))}
+                            />
+                        </label>
+                        {selectedFiles.length > 0 && (
+                            <span style={{ display: 'block', marginTop: '0.35rem', fontSize: '12px', color: '#6B7280' }}>
+                                {selectedFiles.length} file(s) selected.
+                            </span>
+                        )}
                     </p>
 
                     <p>

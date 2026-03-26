@@ -107,6 +107,11 @@ public static class DbInitializer
             {
                 MigrationId = "20260326151611_AddVotes",
                 RequiredTables = new[] { "Vote" }
+            },
+            new
+            {
+                MigrationId = "20260326155902_AddAttachments",
+                RequiredTables = new[] { "Attachment" }
             }
         };
 

@@ -43,6 +43,12 @@ public sealed record IdeaVoteSummaryView(
     int DownvoteCount,
     int CurrentUserVote);
 
+public sealed record IdeaAttachmentView(
+    int AttachmentId,
+    string OriginalName,
+    string ContentType,
+    DateTime UploadedAt);
+
 public sealed record IdeaView(
     int IdeaId,
     string Title,
@@ -58,4 +64,5 @@ public sealed record IdeaView(
     DateTime CreatedAt,
     IReadOnlyList<string> Categories,
     IReadOnlyList<int> CategoryIds,
-    IReadOnlyList<IdeaCommentView> Comments);
+    IReadOnlyList<IdeaCommentView> Comments,
+    IReadOnlyList<IdeaAttachmentView> Attachments);

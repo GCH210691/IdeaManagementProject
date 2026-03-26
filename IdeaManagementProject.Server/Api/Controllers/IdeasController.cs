@@ -1,9 +1,11 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using IdeaManagementProject.Server.Api.Contracts;
 using IdeaManagementProject.Server.Application.Services;
+using IdeaManagementProject.Server.Domain.Entities;
 using IdeaManagementProject.Server.Infrastructure.Persistence;
 
 namespace IdeaManagementProject.Server.Api.Controllers;
@@ -15,11 +17,13 @@ public class IdeasController : ControllerBase
 {
     private readonly IIdeaService _ideaService;
     private readonly AppDbContext _dbContext;
+    private readonly IIdeaAttachmentStorage _attachmentStorage;
 
-    public IdeasController(IIdeaService ideaService, AppDbContext dbContext)
+    public IdeasController(IIdeaService ideaService, AppDbContext dbContext, IIdeaAttachmentStorage attachmentStorage)
     {
         _ideaService = ideaService;
         _dbContext = dbContext;
+        _attachmentStorage = attachmentStorage;
     }
 
     [HttpGet]
@@ -95,7 +99,8 @@ public class IdeasController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = "STAFF,QA_COORDINATOR")]
-    public async Task<IActionResult> CreateIdea([FromBody] CreateIdeaRequest? request, CancellationToken cancellationToken)
+    [RequestSizeLimit(50_000_000)]
+    public async Task<IActionResult> CreateIdea([FromForm] CreateIdeaRequest? request, CancellationToken cancellationToken)
     {
         if (request is null || string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.Content))
         {
@@ -120,6 +125,30 @@ public class IdeasController : ControllerBase
         if (createdIdea is null)
         {
             return NotFound(new { message = "User not found." });
+        }
+
+        var files = (request.Files ?? [])
+            .Where(x => x is not null && x.Length > 0)
+            .ToList();
+
+        if (files.Count > 0)
+        {
+            foreach (var file in files)
+            {
+                var storedAttachment = await _attachmentStorage.SaveAsync(createdIdea.IdeaId, file, cancellationToken);
+                _dbContext.Attachments.Add(new Attachment
+                {
+                    IdeaId = createdIdea.IdeaId,
+                    FilePath = storedAttachment.RelativePath,
+                    OriginalName = Path.GetFileName(file.FileName),
+                    ContentType = storedAttachment.ContentType,
+                    UploadedAt = DateTime.UtcNow,
+                });
+            }
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            createdIdea = await _ideaService.GetIdeaByIdAsync(createdIdea.IdeaId, false, cancellationToken) ?? createdIdea;
         }
 
         return StatusCode(201, ToDto(createdIdea, 0));
@@ -174,6 +203,28 @@ public class IdeasController : ControllerBase
             IdeaMutationStatus.Forbidden => StatusCode(403, new { message = "You can only delete your own ideas." }),
             _ => NoContent()
         };
+    }
+
+    [HttpGet("attachments/{attachmentId:int}/download")]
+    [Authorize(Roles = "QA_MANAGER")]
+    public async Task<IActionResult> DownloadAttachment(int attachmentId, CancellationToken cancellationToken)
+    {
+        var attachment = await _dbContext.Attachments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.AttachmentId == attachmentId, cancellationToken);
+
+        if (attachment is null)
+        {
+            return NotFound(new { message = "Attachment not found." });
+        }
+
+        var file = await _attachmentStorage.OpenReadAsync(attachment.FilePath, cancellationToken);
+        if (file is null)
+        {
+            return NotFound(new { message = "Attachment file not found." });
+        }
+
+        return File(file.Stream, attachment.ContentType, attachment.OriginalName);
     }
 
     private bool TryGetUserId(out int userId)
@@ -238,7 +289,8 @@ public class IdeasController : ControllerBase
             idea.CreatedAt,
             idea.Categories,
             idea.CategoryIds,
-            idea.Comments.Select(ToDto).ToList());
+            idea.Comments.Select(ToDto).ToList(),
+            idea.Attachments.Select(ToDto).ToList());
     }
 
     private static IdeaCommentDto ToDto(IdeaCommentView comment)
@@ -258,5 +310,14 @@ public class IdeasController : ControllerBase
             voteSummary.UpvoteCount,
             voteSummary.DownvoteCount,
             voteSummary.CurrentUserVote);
+    }
+
+    private static IdeaAttachmentDto ToDto(IdeaAttachmentView attachment)
+    {
+        return new IdeaAttachmentDto(
+            attachment.AttachmentId,
+            attachment.OriginalName,
+            attachment.ContentType,
+            attachment.UploadedAt);
     }
 }

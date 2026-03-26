@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using IdeaManagementProject.Server.Application.Services;
 using IdeaManagementProject.Server.Infrastructure.Persistence;
 using IdeaManagementProject.Server.Infrastructure.Seeding;
+using IdeaManagementProject.Server.Infrastructure.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -71,6 +72,7 @@ builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IIdeaService, IdeaService>();
+builder.Services.AddSingleton<IIdeaAttachmentStorage, IdeaAttachmentStorage>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>

@@ -108,6 +108,10 @@ export default function IdeaDetailsPage() {
         window.location.href = `/ideas/${ideaId}/edit`;
     }
 
+    function downloadAttachment(attachmentId) {
+        window.location.href = `/api/ideas/attachments/${attachmentId}/download`;
+    }
+
     async function submitComment() {
         if (!commentText.trim()) {
             setCommentMessage('Comment content is required.');
@@ -212,7 +216,21 @@ export default function IdeaDetailsPage() {
     return (
         <div style={pageStyle()}>
             <section style={cardStyle()}>
-                <h1 style={{ marginTop: 0 }}>Idea Details</h1>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
+                    <h1 style={{ marginTop: 0, marginBottom: 0 }}>Idea Details</h1>
+                    {user?.role === 'QA_MANAGER' && Array.isArray(idea?.attachments) && idea.attachments.length > 0 && (
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            {idea.attachments.map((attachment) => (
+                                <button
+                                    key={attachment.attachmentId}
+                                    type="button"
+                                    onClick={() => downloadAttachment(attachment.attachmentId)}>
+                                    Download {attachment.originalName}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
 
                 {message && <p>{message}</p>}
 
@@ -221,6 +239,12 @@ export default function IdeaDetailsPage() {
                         <p><strong>Title:</strong> {idea.title}</p>
                         <p><strong>Content:</strong></p>
                         <p style={{ whiteSpace: 'pre-wrap' }}>{idea.content}</p>
+                        <p>
+                            <strong>Documents attached:</strong>{' '}
+                            {Array.isArray(idea.attachments) && idea.attachments.length > 0
+                                ? idea.attachments.map((attachment) => `[${attachment.originalName}]`).join(' ')
+                                : 'No documents attached'}
+                        </p>
                         <p><strong>Author:</strong> {idea.authorName}</p>
                         <p><strong>Department:</strong> {idea.departmentName}</p>
                         <p><strong>Anonymous:</strong> {idea.isAnonymous ? 'Yes' : 'No'}</p>

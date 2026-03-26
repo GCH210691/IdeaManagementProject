@@ -1,6 +1,13 @@
+using Microsoft.AspNetCore.Http;
+
 namespace IdeaManagementProject.Server.Api.Contracts;
 
-public sealed record CreateIdeaRequest(string? Title, string? Content, bool IsAnonymous, IReadOnlyList<int>? CategoryIds);
+public sealed record CreateIdeaRequest(
+    string? Title,
+    string? Content,
+    bool IsAnonymous,
+    IReadOnlyList<int>? CategoryIds,
+    IReadOnlyList<IFormFile>? Files);
 
 public sealed record UpdateIdeaRequest(string? Title, string? Content, bool IsAnonymous, IReadOnlyList<int>? CategoryIds);
 
@@ -21,6 +28,12 @@ public sealed record IdeaVoteSummaryDto(
     int DownvoteCount,
     int CurrentUserVote);
 
+public sealed record IdeaAttachmentDto(
+    int AttachmentId,
+    string OriginalName,
+    string ContentType,
+    DateTime UploadedAt);
+
 public sealed record IdeaDto(
     int IdeaId,
     string Title,
@@ -37,4 +50,5 @@ public sealed record IdeaDto(
     DateTime CreatedAt,
     IReadOnlyList<string> Categories,
     IReadOnlyList<int> CategoryIds,
-    IReadOnlyList<IdeaCommentDto> Comments);
+    IReadOnlyList<IdeaCommentDto> Comments,
+    IReadOnlyList<IdeaAttachmentDto> Attachments);

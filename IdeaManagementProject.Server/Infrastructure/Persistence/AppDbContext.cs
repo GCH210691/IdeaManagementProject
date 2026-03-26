@@ -18,6 +18,7 @@ public class AppDbContext : DbContext
     public DbSet<IdeaCategory> IdeaCategories => Set<IdeaCategory>();
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<Vote> Votes => Set<Vote>();
+    public DbSet<Attachment> Attachments => Set<Attachment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -219,6 +220,42 @@ public class AppDbContext : DbContext
                 .WithMany(x => x.Votes)
                 .HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Attachment>(entity =>
+        {
+            entity.ToTable("Attachment");
+
+            entity.HasKey(x => x.AttachmentId);
+            entity.Property(x => x.AttachmentId).HasColumnName("attachment_id");
+
+            entity.Property(x => x.IdeaId)
+                .HasColumnName("idea_id")
+                .IsRequired();
+
+            entity.Property(x => x.FilePath)
+                .HasColumnName("file_path")
+                .HasMaxLength(512)
+                .IsRequired();
+
+            entity.Property(x => x.OriginalName)
+                .HasColumnName("original_name")
+                .HasMaxLength(255)
+                .IsRequired();
+
+            entity.Property(x => x.ContentType)
+                .HasColumnName("content_type")
+                .HasMaxLength(255)
+                .IsRequired();
+
+            entity.Property(x => x.UploadedAt)
+                .HasColumnName("uploaded_at")
+                .IsRequired();
+
+            entity.HasOne(x => x.Idea)
+                .WithMany(x => x.Attachments)
+                .HasForeignKey(x => x.IdeaId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Category>(entity =>

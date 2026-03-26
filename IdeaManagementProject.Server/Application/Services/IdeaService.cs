@@ -33,11 +33,13 @@ public class IdeaService : IIdeaService
         {
             var ideaSnapshot = await _dbContext.Ideas
                 .AsNoTracking()
+                .AsSplitQuery()
                 .Include(x => x.AuthorUser)
                 .Include(x => x.Department)
                 .Include(x => x.IdeaCategories)
                     .ThenInclude(x => x.Category)
                 .Include(x => x.Votes)
+                .Include(x => x.Attachments)
                 .Include(x => x.Comments)
                     .ThenInclude(x => x.AuthorUser)
                         .ThenInclude(x => x.Role)
@@ -47,11 +49,13 @@ public class IdeaService : IIdeaService
         }
 
         var idea = await _dbContext.Ideas
+            .AsSplitQuery()
             .Include(x => x.AuthorUser)
             .Include(x => x.Department)
             .Include(x => x.IdeaCategories)
                 .ThenInclude(x => x.Category)
             .Include(x => x.Votes)
+            .Include(x => x.Attachments)
             .Include(x => x.Comments)
                 .ThenInclude(x => x.AuthorUser)
                     .ThenInclude(x => x.Role)
@@ -322,6 +326,16 @@ public class IdeaService : IIdeaService
                 .ToList()
             : [];
 
+        var orderedAttachments = idea.Attachments
+            .OrderBy(x => x.UploadedAt)
+            .ThenBy(x => x.AttachmentId)
+            .Select(x => new IdeaAttachmentView(
+                x.AttachmentId,
+                x.OriginalName,
+                x.ContentType,
+                x.UploadedAt))
+            .ToList();
+
         return new IdeaView(
             idea.IdeaId,
             idea.Title,
@@ -337,6 +351,7 @@ public class IdeaService : IIdeaService
             idea.CreatedAt,
             orderedCategories.Select(x => x.Category.Name).ToList(),
             orderedCategories.Select(x => x.CategoryId).ToList(),
-            orderedComments);
+            orderedComments,
+            orderedAttachments);
     }
 }
