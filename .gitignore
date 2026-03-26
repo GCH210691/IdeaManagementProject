@@ -14,3 +14,5 @@ obj/
 .dotnet/
 .tmp-category-build/
 /.tmp-build-check/
+/IdeaManagementProject.Server/App_Data/idea-attachments/
+
