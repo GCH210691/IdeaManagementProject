@@ -108,8 +108,40 @@ export default function IdeaDetailsPage() {
         window.location.href = `/ideas/${ideaId}/edit`;
     }
 
-    function downloadAttachment(attachmentId) {
-        window.location.href = `/api/ideas/attachments/${attachmentId}/download`;
+    async function downloadAttachment(attachmentId, originalName) {
+        try {
+            const response = await fetch(`/api/ideas/attachments/${attachmentId}/download`, {
+                headers: getAuthHeaders(),
+            });
+
+            if (response.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+
+            if (response.status === 403) {
+                setMessage('Only QA managers can download attachments.');
+                return;
+            }
+
+            if (!response.ok) {
+                setMessage(`Download failed: ${response.status}`);
+                return;
+            }
+
+            const blob = await response.blob();
+            const downloadUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = originalName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(downloadUrl);
+        } catch (error) {
+            const details = error instanceof Error ? error.message : String(error);
+            setMessage('Download error: ' + details);
+        }
     }
 
     async function submitComment() {
@@ -224,7 +256,7 @@ export default function IdeaDetailsPage() {
                                 <button
                                     key={attachment.attachmentId}
                                     type="button"
-                                    onClick={() => downloadAttachment(attachment.attachmentId)}>
+                                    onClick={() => downloadAttachment(attachment.attachmentId, attachment.originalName)}>
                                     Download {attachment.originalName}
                                 </button>
                             ))}

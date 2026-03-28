@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -32,6 +33,93 @@ public class IdeasController : ControllerBase
         var ideas = await _ideaService.GetIdeasAsync(cancellationToken);
         var response = ideas.Select(x => ToDto(x, 0)).ToList();
         return Ok(response);
+    }
+
+    [HttpGet("export/csv")]
+    [Authorize(Roles = "QA_MANAGER")]
+    public async Task<IActionResult> ExportIdeasCsv(CancellationToken cancellationToken)
+    {
+        var ideas = await _dbContext.Ideas
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(x => x.AuthorUser)
+                .ThenInclude(x => x.Role)
+            .Include(x => x.Department)
+            .Include(x => x.IdeaCategories)
+                .ThenInclude(x => x.Category)
+            .Include(x => x.Comments)
+                .ThenInclude(x => x.AuthorUser)
+                    .ThenInclude(x => x.Role)
+            .Include(x => x.Votes)
+                .ThenInclude(x => x.User)
+                    .ThenInclude(x => x.Role)
+            .OrderBy(x => x.IdeaId)
+            .ToListAsync(cancellationToken);
+
+        var csv = new StringBuilder();
+        csv.AppendLine(string.Join(",",
+            Csv("IdeaId"),
+            Csv("Title"),
+            Csv("Content"),
+            Csv("AuthorUserId"),
+            Csv("AuthorName"),
+            Csv("AuthorEmail"),
+            Csv("AuthorRole"),
+            Csv("DepartmentId"),
+            Csv("DepartmentName"),
+            Csv("IsAnonymous"),
+            Csv("ViewCount"),
+            Csv("IdeaCreatedAt"),
+            Csv("Categories"),
+            Csv("Comments"),
+            Csv("UpvoteCount"),
+            Csv("DownvoteCount"),
+            Csv("Votes")));
+
+        foreach (var idea in ideas)
+        {
+            var categories = string.Join(" | ",
+                idea.IdeaCategories
+                    .OrderBy(x => x.Category.Name)
+                    .Select(x => x.Category.Name));
+
+            var comments = string.Join(" | ",
+                idea.Comments
+                    .OrderBy(x => x.CreatedAt)
+                    .ThenBy(x => x.CommentId)
+                    .Select(x => $"{x.AuthorUser.Name} [{ToRoleLabel(x.AuthorUser.Role.RoleName)}] {x.CreatedAt:O}: {x.Content}"));
+
+            var upvoteCount = idea.Votes.Count(x => x.Value > 0);
+            var downvoteCount = idea.Votes.Count(x => x.Value < 0);
+            var votes = string.Join(" | ",
+                idea.Votes
+                    .OrderBy(x => x.User.Name)
+                    .ThenBy(x => x.VoteId)
+                    .Select(x => $"{x.User.Name} [{ToRoleLabel(x.User.Role.RoleName)}]: {(x.Value > 0 ? "Upvote" : "Downvote")}"));
+
+            csv.AppendLine(string.Join(",",
+                Csv(idea.IdeaId),
+                Csv(idea.Title),
+                Csv(idea.Content),
+                Csv(idea.AuthorUserId),
+                Csv(idea.IsAnonymous ? "Anonymous" : idea.AuthorUser.Name),
+                Csv(idea.AuthorUser.Email),
+                Csv(ToRoleLabel(idea.AuthorUser.Role.RoleName)),
+                Csv(idea.DepartmentId),
+                Csv(idea.Department.Name),
+                Csv(idea.IsAnonymous),
+                Csv(idea.ViewCount),
+                Csv(idea.CreatedAt.ToString("O")),
+                Csv(categories),
+                Csv(comments),
+                Csv(upvoteCount),
+                Csv(downvoteCount),
+                Csv(votes)));
+        }
+
+        var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+        var fileName = $"system-data-{DateTime.UtcNow:yyyyMMdd-HHmmss}.csv";
+        return File(bytes, "text/csv; charset=utf-8", fileName);
     }
 
     [HttpGet("{ideaId:int}")]
@@ -319,5 +407,18 @@ public class IdeasController : ControllerBase
             attachment.OriginalName,
             attachment.ContentType,
             attachment.UploadedAt);
+    }
+
+    private static string Csv(object? value)
+    {
+        var text = Convert.ToString(value) ?? string.Empty;
+        return $"\"{text.Replace("\"", "\"\"")}\"";
+    }
+
+    private static string ToRoleLabel(string role)
+    {
+        return string.Join(" ",
+            role.Split('_', StringSplitOptions.RemoveEmptyEntries)
+                .Select(part => char.ToUpperInvariant(part[0]) + part[1..].ToLowerInvariant()));
     }
 }

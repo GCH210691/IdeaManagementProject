@@ -167,6 +167,45 @@ export default function IdeaListPage() {
         window.location.href = `/ideas/${ideaId}/edit`;
     }
 
+    async function downloadCsvExport() {
+        try {
+            const response = await fetch('/api/ideas/export/csv', {
+                headers: getAuthHeaders({ Accept: 'text/csv' }),
+            });
+
+            if (response.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+
+            if (response.status === 403) {
+                setMessage('Only QA managers can download the CSV export.');
+                return;
+            }
+
+            if (!response.ok) {
+                setMessage(`Export failed: ${response.status}`);
+                return;
+            }
+
+            const blob = await response.blob();
+            const downloadUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const disposition = response.headers.get('content-disposition') || '';
+            const matchedName = disposition.match(/filename="?([^"]+)"?/i);
+
+            link.href = downloadUrl;
+            link.download = matchedName?.[1] || 'system-data.csv';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(downloadUrl);
+        } catch (error) {
+            const details = error instanceof Error ? error.message : String(error);
+            setMessage('Export error: ' + details);
+        }
+    }
+
     async function deleteIdea(idea) {
         if (!canManageIdea(user, idea)) {
             return;
@@ -227,11 +266,18 @@ export default function IdeaListPage() {
                     <h1 style={h1Style()}>Idea List</h1>
                     <p style={subStyle()}>Browse all submitted ideas and manage the ones you own.</p>
                 </div>
-                {allowCreate && (
-                    <button type="button" style={actionButtonStyle(true)} onClick={() => { window.location.href = '/ideas/create'; }}>
-                        Create idea
-                    </button>
-                )}
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    {user?.role === 'QA_MANAGER' && (
+                        <button type="button" style={actionButtonStyle(true)} onClick={downloadCsvExport}>
+                            Download CSV
+                        </button>
+                    )}
+                    {allowCreate && (
+                        <button type="button" style={actionButtonStyle(true)} onClick={() => { window.location.href = '/ideas/create'; }}>
+                            Create idea
+                        </button>
+                    )}
+                </div>
             </div>
 
             {message && <p>{message}</p>}
