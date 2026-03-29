@@ -89,6 +89,7 @@ const MENU_ITEMS = [
     { id: 'overview', icon: 'OV', label: 'Overview' },
     { id: 'users', icon: 'AC', label: 'Accounts' },
     { id: 'departments', icon: 'DP', label: 'Departments' },
+    { id: 'closure-periods', icon: 'CP', label: 'Closure dates' },
     { id: 'analytics', icon: 'AN', label: 'Analytics' },
     { id: 'categories', icon: 'CT', label: 'Categories' },
 ];
@@ -107,6 +108,11 @@ export default function AdminShell({ activeMenu, onMenuSelect, children }) {
 
         if (itemId === 'departments') {
             window.location.href = '/admin/departments';
+            return;
+        }
+
+        if (itemId === 'closure-periods') {
+            window.location.href = '/admin/closure-periods';
             return;
         }
 

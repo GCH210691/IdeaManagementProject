@@ -4,10 +4,11 @@ public interface IIdeaService
 {
     Task<IReadOnlyList<IdeaView>> GetIdeasAsync(CancellationToken cancellationToken = default);
     Task<IdeaView?> GetIdeaByIdAsync(int ideaId, bool incrementViewCount = false, CancellationToken cancellationToken = default);
-    Task<IdeaView?> CreateIdeaAsync(CreateIdeaInput input, CancellationToken cancellationToken = default);
+    Task<IdeaSubmissionWindowView> GetSubmissionWindowAsync(CancellationToken cancellationToken = default);
+    Task<IdeaCreationResult> CreateIdeaAsync(CreateIdeaInput input, CancellationToken cancellationToken = default);
     Task<IdeaMutationResult> UpdateIdeaAsync(UpdateIdeaInput input, CancellationToken cancellationToken = default);
     Task<IdeaMutationStatus> DeleteIdeaAsync(DeleteIdeaInput input, CancellationToken cancellationToken = default);
-    Task<IdeaCommentView?> AddCommentAsync(AddIdeaCommentInput input, CancellationToken cancellationToken = default);
+    Task<IdeaCommentMutationResult> AddCommentAsync(AddIdeaCommentInput input, CancellationToken cancellationToken = default);
     Task<IdeaVoteSummaryView?> CastVoteAsync(CastIdeaVoteInput input, CancellationToken cancellationToken = default);
 }
 
@@ -21,6 +22,21 @@ public sealed record AddIdeaCommentInput(int IdeaId, int UserId, string Content)
 
 public sealed record CastIdeaVoteInput(int IdeaId, int UserId, int Value);
 
+public enum IdeaCreationStatus
+{
+    Success,
+    UserNotFound,
+    NoOpenClosurePeriod
+}
+
+public enum IdeaCommentMutationStatus
+{
+    Success,
+    IdeaNotFound,
+    UserNotFound,
+    CommentClosed
+}
+
 public enum IdeaMutationStatus
 {
     Success,
@@ -28,7 +44,14 @@ public enum IdeaMutationStatus
     Forbidden
 }
 
+public sealed record IdeaCreationResult(IdeaCreationStatus Status, IdeaView? Idea, IdeaSubmissionWindowView SubmissionWindow);
+
 public sealed record IdeaMutationResult(IdeaMutationStatus Status, IdeaView? Idea);
+
+public sealed record IdeaCommentMutationResult(
+    IdeaCommentMutationStatus Status,
+    IdeaCommentView? Comment,
+    DateTime? CommentEndAt);
 
 public sealed record IdeaCommentView(
     int CommentId,
@@ -49,6 +72,13 @@ public sealed record IdeaAttachmentView(
     string ContentType,
     DateTime UploadedAt);
 
+public sealed record IdeaSubmissionWindowView(
+    string State,
+    int? ClosurePeriodId,
+    string? Title,
+    DateTime? IdeaStartAt,
+    DateTime? IdeaEndAt);
+
 public sealed record IdeaView(
     int IdeaId,
     string Title,
@@ -57,11 +87,19 @@ public sealed record IdeaView(
     string AuthorName,
     int DepartmentId,
     string DepartmentName,
+    int ClosurePeriodId,
+    string ClosurePeriodTitle,
+    int AcademicYearId,
+    string AcademicYearName,
     bool IsAnonymous,
     int ViewCount,
     int UpvoteCount,
     int DownvoteCount,
     DateTime CreatedAt,
+    DateTime IdeaStartAt,
+    DateTime IdeaEndAt,
+    DateTime CommentEndAt,
+    bool IsCommentOpen,
     IReadOnlyList<string> Categories,
     IReadOnlyList<int> CategoryIds,
     IReadOnlyList<IdeaCommentView> Comments,

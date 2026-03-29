@@ -34,6 +34,18 @@ function formatRole(role) {
         .join(' ');
 }
 
+function commentAvailabilityMessage(idea) {
+    if (!idea) {
+        return '';
+    }
+
+    if (idea.isCommentOpen) {
+        return `Comment is available till ${new Date(idea.commentEndAt).toLocaleString()}.`;
+    }
+
+    return 'Comment is not available at the moment.';
+}
+
 export default function IdeaDetailsPage() {
     const session = useMemo(() => getAuthSession(), []);
     const user = session?.user;
@@ -145,6 +157,11 @@ export default function IdeaDetailsPage() {
     }
 
     async function submitComment() {
+        if (!idea?.isCommentOpen) {
+            setCommentMessage('Comment is not available at the moment.');
+            return;
+        }
+
         if (!commentText.trim()) {
             setCommentMessage('Comment content is required.');
             return;
@@ -169,6 +186,16 @@ export default function IdeaDetailsPage() {
             }
 
             const payload = await response.json().catch(() => null);
+            if (response.status === 409) {
+                setIdea((current) => current ? {
+                    ...current,
+                    isCommentOpen: false,
+                    commentEndAt: payload?.commentEndAt || current.commentEndAt,
+                } : current);
+                setCommentMessage(payload?.message || 'Comment is not available at the moment.');
+                return;
+            }
+
             if (!response.ok) {
                 setCommentMessage(payload?.message || `Comment failed: ${response.status}`);
                 return;
@@ -245,6 +272,8 @@ export default function IdeaDetailsPage() {
         return null;
     }
 
+    const commentOpen = idea?.isCommentOpen;
+
     return (
         <div style={pageStyle()}>
             <section style={cardStyle()}>
@@ -296,6 +325,7 @@ export default function IdeaDetailsPage() {
                         <hr />
 
                         <h2>Comments</h2>
+                        <p>{commentAvailabilityMessage(idea)}</p>
                         <p>
                             <textarea
                                 value={commentText}
@@ -303,10 +333,11 @@ export default function IdeaDetailsPage() {
                                 rows={4}
                                 placeholder="Write a comment..."
                                 style={{ width: '100%', boxSizing: 'border-box' }}
+                                disabled={!commentOpen}
                             />
                         </p>
                         <p>
-                            <button type="button" onClick={submitComment} disabled={sendingComment}>
+                            <button type="button" onClick={submitComment} disabled={sendingComment || !commentOpen}>
                                 {sendingComment ? 'Sending...' : 'Send'}
                             </button>
                         </p>
@@ -341,6 +372,3 @@ export default function IdeaDetailsPage() {
         </div>
     );
 }
-
-
-

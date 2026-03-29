@@ -13,6 +13,8 @@ public class AppDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<Department> Departments => Set<Department>();
+    public DbSet<AcademicYear> AcademicYears => Set<AcademicYear>();
+    public DbSet<ClosurePeriod> ClosurePeriods => Set<ClosurePeriod>();
     public DbSet<Idea> Ideas => Set<Idea>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<IdeaCategory> IdeaCategories => Set<IdeaCategory>();
@@ -58,6 +60,55 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(x => x.QaCoordinatorUserId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<AcademicYear>(entity =>
+        {
+            entity.ToTable("AcademicYear");
+
+            entity.HasKey(x => x.AcademicYearId);
+            entity.Property(x => x.AcademicYearId).HasColumnName("academic_year_id");
+
+            entity.Property(x => x.YearName)
+                .HasColumnName("year_name")
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.HasIndex(x => x.YearName).IsUnique();
+        });
+
+        modelBuilder.Entity<ClosurePeriod>(entity =>
+        {
+            entity.ToTable("ClosurePeriod");
+
+            entity.HasKey(x => x.ClosurePeriodId);
+            entity.Property(x => x.ClosurePeriodId).HasColumnName("closure_period_id");
+
+            entity.Property(x => x.AcademicYearId)
+                .HasColumnName("academic_year_id")
+                .IsRequired();
+
+            entity.Property(x => x.Title)
+                .HasColumnName("title")
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(x => x.IdeaStartAt)
+                .HasColumnName("idea_start_at")
+                .IsRequired();
+
+            entity.Property(x => x.IdeaEndAt)
+                .HasColumnName("idea_end_at")
+                .IsRequired();
+
+            entity.Property(x => x.CommentEndAt)
+                .HasColumnName("comment_end_at")
+                .IsRequired();
+
+            entity.HasOne(x => x.AcademicYear)
+                .WithMany(x => x.ClosurePeriods)
+                .HasForeignKey(x => x.AcademicYearId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<User>(entity =>
@@ -131,6 +182,10 @@ public class AppDbContext : DbContext
                 .HasColumnName("department_id")
                 .IsRequired();
 
+            entity.Property(x => x.ClosurePeriodId)
+                .HasColumnName("closure_period_id")
+                .IsRequired();
+
             entity.Property(x => x.IsAnonymous)
                 .HasColumnName("is_anonymous")
                 .IsRequired();
@@ -152,6 +207,11 @@ public class AppDbContext : DbContext
             entity.HasOne(x => x.Department)
                 .WithMany(x => x.Ideas)
                 .HasForeignKey(x => x.DepartmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.ClosurePeriod)
+                .WithMany(x => x.Ideas)
+                .HasForeignKey(x => x.ClosurePeriodId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 

@@ -97,3 +97,7 @@ export function isDashboardRole(user) {
 export function canViewCategoryList(user) {
     return user?.role === 'QA_MANAGER';
 }
+
+export function canViewAcademicYearReports(user) {
+    return user?.role === 'QA_MANAGER';
+}

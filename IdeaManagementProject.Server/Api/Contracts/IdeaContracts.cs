@@ -15,6 +15,13 @@ public sealed record CreateIdeaCommentRequest(string? Content);
 
 public sealed record CastIdeaVoteRequest(int? Value);
 
+public sealed record IdeaSubmissionWindowDto(
+    string State,
+    int? ClosurePeriodId,
+    string? Title,
+    DateTime? IdeaStartAt,
+    DateTime? IdeaEndAt);
+
 public sealed record IdeaCommentDto(
     int CommentId,
     int AuthorUserId,
@@ -42,12 +49,20 @@ public sealed record IdeaDto(
     string AuthorName,
     int DepartmentId,
     string DepartmentName,
+    int ClosurePeriodId,
+    string ClosurePeriodTitle,
+    int AcademicYearId,
+    string AcademicYearName,
     bool IsAnonymous,
     int ViewCount,
     int UpvoteCount,
     int DownvoteCount,
     int CurrentUserVote,
     DateTime CreatedAt,
+    DateTime IdeaStartAt,
+    DateTime IdeaEndAt,
+    DateTime CommentEndAt,
+    bool IsCommentOpen,
     IReadOnlyList<string> Categories,
     IReadOnlyList<int> CategoryIds,
     IReadOnlyList<IdeaCommentDto> Comments,

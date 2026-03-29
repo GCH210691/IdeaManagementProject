@@ -15,20 +15,26 @@ public class IdeaService : IIdeaService
 
     public async Task<IReadOnlyList<IdeaView>> GetIdeasAsync(CancellationToken cancellationToken = default)
     {
+        var now = GetCurrentClosureTime();
+
         var ideas = await _dbContext.Ideas
             .AsNoTracking()
             .Include(x => x.AuthorUser)
             .Include(x => x.Department)
+            .Include(x => x.ClosurePeriod)
+                .ThenInclude(x => x.AcademicYear)
             .Include(x => x.IdeaCategories)
                 .ThenInclude(x => x.Category)
             .OrderByDescending(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        return ideas.Select(x => ToView(x, includeComments: false)).ToList();
+        return ideas.Select(x => ToView(x, includeComments: false, now)).ToList();
     }
 
     public async Task<IdeaView?> GetIdeaByIdAsync(int ideaId, bool incrementViewCount = false, CancellationToken cancellationToken = default)
     {
+        var now = GetCurrentClosureTime();
+
         if (!incrementViewCount)
         {
             var ideaSnapshot = await _dbContext.Ideas
@@ -36,6 +42,8 @@ public class IdeaService : IIdeaService
                 .AsSplitQuery()
                 .Include(x => x.AuthorUser)
                 .Include(x => x.Department)
+                .Include(x => x.ClosurePeriod)
+                    .ThenInclude(x => x.AcademicYear)
                 .Include(x => x.IdeaCategories)
                     .ThenInclude(x => x.Category)
                 .Include(x => x.Votes)
@@ -45,13 +53,15 @@ public class IdeaService : IIdeaService
                         .ThenInclude(x => x.Role)
                 .FirstOrDefaultAsync(x => x.IdeaId == ideaId, cancellationToken);
 
-            return ideaSnapshot is null ? null : ToView(ideaSnapshot, includeComments: true);
+            return ideaSnapshot is null ? null : ToView(ideaSnapshot, includeComments: true, now);
         }
 
         var idea = await _dbContext.Ideas
             .AsSplitQuery()
             .Include(x => x.AuthorUser)
             .Include(x => x.Department)
+            .Include(x => x.ClosurePeriod)
+                .ThenInclude(x => x.AcademicYear)
             .Include(x => x.IdeaCategories)
                 .ThenInclude(x => x.Category)
             .Include(x => x.Votes)
@@ -69,10 +79,51 @@ public class IdeaService : IIdeaService
         idea.ViewCount += 1;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return ToView(idea, includeComments: true);
+        return ToView(idea, includeComments: true, now);
     }
 
-    public async Task<IdeaView?> CreateIdeaAsync(CreateIdeaInput input, CancellationToken cancellationToken = default)
+    public async Task<IdeaSubmissionWindowView> GetSubmissionWindowAsync(CancellationToken cancellationToken = default)
+    {
+        var now = GetCurrentClosureTime();
+
+        var openWindow = await _dbContext.ClosurePeriods
+            .AsNoTracking()
+            .OrderBy(x => x.IdeaStartAt)
+            .FirstOrDefaultAsync(
+                x => x.IdeaStartAt <= now && x.IdeaEndAt >= now,
+                cancellationToken);
+
+        if (openWindow is not null)
+        {
+            return ToSubmissionWindowView("open", openWindow);
+        }
+
+        var upcomingWindow = await _dbContext.ClosurePeriods
+            .AsNoTracking()
+            .Where(x => x.IdeaStartAt > now)
+            .OrderBy(x => x.IdeaStartAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (upcomingWindow is not null)
+        {
+            return ToSubmissionWindowView("upcoming", upcomingWindow);
+        }
+
+        var latestEndedWindow = await _dbContext.ClosurePeriods
+            .AsNoTracking()
+            .Where(x => x.IdeaEndAt < now)
+            .OrderByDescending(x => x.IdeaEndAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (latestEndedWindow is not null)
+        {
+            return ToSubmissionWindowView("closed", latestEndedWindow);
+        }
+
+        return new IdeaSubmissionWindowView("unavailable", null, null, null, null);
+    }
+
+    public async Task<IdeaCreationResult> CreateIdeaAsync(CreateIdeaInput input, CancellationToken cancellationToken = default)
     {
         var user = await _dbContext.Users
             .AsNoTracking()
@@ -81,13 +132,36 @@ public class IdeaService : IIdeaService
 
         if (user is null)
         {
-            return null;
+            return new IdeaCreationResult(
+                IdeaCreationStatus.UserNotFound,
+                null,
+                await GetSubmissionWindowAsync(cancellationToken));
+        }
+
+        var now = GetCurrentClosureTime();
+
+        var openClosurePeriod = await _dbContext.ClosurePeriods
+            .AsNoTracking()
+            .Include(x => x.AcademicYear)
+            .OrderBy(x => x.IdeaStartAt)
+            .FirstOrDefaultAsync(
+                x => x.IdeaStartAt <= now && x.IdeaEndAt >= now,
+                cancellationToken);
+
+        if (openClosurePeriod is null)
+        {
+            return new IdeaCreationResult(
+                IdeaCreationStatus.NoOpenClosurePeriod,
+                null,
+                await GetSubmissionWindowAsync(cancellationToken));
         }
 
         var selectedCategoryIds = input.CategoryIds.Distinct().ToList();
-        var categories = await _dbContext.Categories
-            .Where(x => selectedCategoryIds.Contains(x.CategoryId))
-            .ToListAsync(cancellationToken);
+        var categories = selectedCategoryIds.Count == 0
+            ? []
+            : await _dbContext.Categories
+                .Where(x => selectedCategoryIds.Contains(x.CategoryId))
+                .ToListAsync(cancellationToken);
 
         var idea = new Idea
         {
@@ -95,6 +169,7 @@ public class IdeaService : IIdeaService
             Content = input.Content.Trim(),
             AuthorUserId = user.UserId,
             DepartmentId = user.DepartmentId,
+            ClosurePeriodId = openClosurePeriod.ClosurePeriodId,
             IsAnonymous = input.IsAnonymous,
             ViewCount = 0,
             CreatedAt = DateTime.UtcNow,
@@ -118,15 +193,23 @@ public class IdeaService : IIdeaService
 
         idea.AuthorUser = user;
         idea.Department = user.Department;
+        idea.ClosurePeriod = openClosurePeriod;
 
-        return ToView(idea, includeComments: false);
+        return new IdeaCreationResult(
+            IdeaCreationStatus.Success,
+            ToView(idea, includeComments: false, now),
+            ToSubmissionWindowView("open", openClosurePeriod));
     }
 
     public async Task<IdeaMutationResult> UpdateIdeaAsync(UpdateIdeaInput input, CancellationToken cancellationToken = default)
     {
+        var now = GetCurrentClosureTime();
+
         var idea = await _dbContext.Ideas
             .Include(x => x.AuthorUser)
             .Include(x => x.Department)
+            .Include(x => x.ClosurePeriod)
+                .ThenInclude(x => x.AcademicYear)
             .Include(x => x.IdeaCategories)
                 .ThenInclude(x => x.Category)
             .FirstOrDefaultAsync(x => x.IdeaId == input.IdeaId, cancellationToken);
@@ -181,7 +264,7 @@ public class IdeaService : IIdeaService
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return new IdeaMutationResult(IdeaMutationStatus.Success, ToView(idea, includeComments: false));
+        return new IdeaMutationResult(IdeaMutationStatus.Success, ToView(idea, includeComments: false, now));
     }
 
     public async Task<IdeaMutationStatus> DeleteIdeaAsync(DeleteIdeaInput input, CancellationToken cancellationToken = default)
@@ -205,8 +288,10 @@ public class IdeaService : IIdeaService
         return IdeaMutationStatus.Success;
     }
 
-    public async Task<IdeaCommentView?> AddCommentAsync(AddIdeaCommentInput input, CancellationToken cancellationToken = default)
+    public async Task<IdeaCommentMutationResult> AddCommentAsync(AddIdeaCommentInput input, CancellationToken cancellationToken = default)
     {
+        var now = GetCurrentClosureTime();
+
         var user = await _dbContext.Users
             .AsNoTracking()
             .Include(x => x.Role)
@@ -214,16 +299,25 @@ public class IdeaService : IIdeaService
 
         if (user is null)
         {
-            return null;
+            return new IdeaCommentMutationResult(IdeaCommentMutationStatus.UserNotFound, null, null);
         }
 
-        var ideaExists = await _dbContext.Ideas
+        var idea = await _dbContext.Ideas
             .AsNoTracking()
-            .AnyAsync(x => x.IdeaId == input.IdeaId, cancellationToken);
+            .Include(x => x.ClosurePeriod)
+            .FirstOrDefaultAsync(x => x.IdeaId == input.IdeaId, cancellationToken);
 
-        if (!ideaExists)
+        if (idea is null)
         {
-            return null;
+            return new IdeaCommentMutationResult(IdeaCommentMutationStatus.IdeaNotFound, null, null);
+        }
+
+        if (now > idea.ClosurePeriod.CommentEndAt)
+        {
+            return new IdeaCommentMutationResult(
+                IdeaCommentMutationStatus.CommentClosed,
+                null,
+                idea.ClosurePeriod.CommentEndAt);
         }
 
         var comment = new Comment
@@ -237,13 +331,16 @@ public class IdeaService : IIdeaService
         _dbContext.Comments.Add(comment);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return new IdeaCommentView(
-            comment.CommentId,
-            user.UserId,
-            user.Name,
-            user.Role.RoleName,
-            comment.Content,
-            comment.CreatedAt);
+        return new IdeaCommentMutationResult(
+            IdeaCommentMutationStatus.Success,
+            new IdeaCommentView(
+                comment.CommentId,
+                user.UserId,
+                user.Name,
+                user.Role.RoleName,
+                comment.Content,
+                comment.CreatedAt),
+            idea.ClosurePeriod.CommentEndAt);
     }
 
     public async Task<IdeaVoteSummaryView?> CastVoteAsync(CastIdeaVoteInput input, CancellationToken cancellationToken = default)
@@ -303,7 +400,22 @@ public class IdeaService : IIdeaService
             currentUserVote);
     }
 
-    private static IdeaView ToView(Idea idea, bool includeComments)
+    private static DateTime GetCurrentClosureTime()
+    {
+        return DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Unspecified);
+    }
+
+    private static IdeaSubmissionWindowView ToSubmissionWindowView(string state, ClosurePeriod closurePeriod)
+    {
+        return new IdeaSubmissionWindowView(
+            state,
+            closurePeriod.ClosurePeriodId,
+            closurePeriod.Title,
+            closurePeriod.IdeaStartAt,
+            closurePeriod.IdeaEndAt);
+    }
+
+    private static IdeaView ToView(Idea idea, bool includeComments, DateTime now)
     {
         var orderedCategories = idea.IdeaCategories
             .OrderBy(x => x.Category.Name)
@@ -344,11 +456,19 @@ public class IdeaService : IIdeaService
             idea.IsAnonymous ? "Anonymous" : idea.AuthorUser.Name,
             idea.DepartmentId,
             idea.Department.Name,
+            idea.ClosurePeriodId,
+            idea.ClosurePeriod.Title,
+            idea.ClosurePeriod.AcademicYearId,
+            idea.ClosurePeriod.AcademicYear.YearName,
             idea.IsAnonymous,
             idea.ViewCount,
             upvoteCount,
             downvoteCount,
             idea.CreatedAt,
+            idea.ClosurePeriod.IdeaStartAt,
+            idea.ClosurePeriod.IdeaEndAt,
+            idea.ClosurePeriod.CommentEndAt,
+            now <= idea.ClosurePeriod.CommentEndAt,
             orderedCategories.Select(x => x.Category.Name).ToList(),
             orderedCategories.Select(x => x.CategoryId).ToList(),
             orderedComments,

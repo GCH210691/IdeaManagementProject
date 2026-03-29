@@ -86,32 +86,44 @@ public static class DbInitializer
             new
             {
                 MigrationId = "20260225025512_InitialMySql",
-                RequiredTables = new[] { "Role", "Department", "User" }
+                RequiredTables = new[] { "Role", "Department", "User" },
+                RequiredColumns = Array.Empty<(string TableName, string ColumnName)>()
             },
             new
             {
                 MigrationId = "20260301162221_AddIdeas",
-                RequiredTables = new[] { "Idea" }
+                RequiredTables = new[] { "Idea" },
+                RequiredColumns = Array.Empty<(string TableName, string ColumnName)>()
             },
             new
             {
                 MigrationId = "20260315174923_AddCategories",
-                RequiredTables = new[] { "Category", "IdeaCategory" }
+                RequiredTables = new[] { "Category", "IdeaCategory" },
+                RequiredColumns = Array.Empty<(string TableName, string ColumnName)>()
             },
             new
             {
                 MigrationId = "20260323173517_AddComments",
-                RequiredTables = new[] { "Comment" }
+                RequiredTables = new[] { "Comment" },
+                RequiredColumns = Array.Empty<(string TableName, string ColumnName)>()
             },
             new
             {
                 MigrationId = "20260326151611_AddVotes",
-                RequiredTables = new[] { "Vote" }
+                RequiredTables = new[] { "Vote" },
+                RequiredColumns = Array.Empty<(string TableName, string ColumnName)>()
             },
             new
             {
                 MigrationId = "20260326155902_AddAttachments",
-                RequiredTables = new[] { "Attachment" }
+                RequiredTables = new[] { "Attachment" },
+                RequiredColumns = Array.Empty<(string TableName, string ColumnName)>()
+            },
+            new
+            {
+                MigrationId = "20260329094353_AddAcademicYearsAndClosurePeriods",
+                RequiredTables = new[] { "AcademicYear", "ClosurePeriod" },
+                RequiredColumns = new[] { ("Idea", "closure_period_id") }
             }
         };
 
@@ -124,6 +136,20 @@ public static class DbInitializer
             foreach (var tableName in migration.RequiredTables)
             {
                 if (!await TableExistsAsync(dbContext, tableName))
+                {
+                    hasAllTables = false;
+                    break;
+                }
+            }
+
+            if (!hasAllTables)
+            {
+                break;
+            }
+
+            foreach (var requiredColumn in migration.RequiredColumns)
+            {
+                if (!await ColumnExistsAsync(dbContext, requiredColumn.TableName, requiredColumn.ColumnName))
                 {
                     hasAllTables = false;
                     break;
@@ -172,6 +198,49 @@ public static class DbInitializer
             parameter.ParameterName = "@tableName";
             parameter.Value = tableName;
             command.Parameters.Add(parameter);
+
+            var result = await command.ExecuteScalarAsync();
+            return Convert.ToInt32(result) > 0;
+        }
+        finally
+        {
+            if (shouldCloseConnection)
+            {
+                await connection.CloseAsync();
+            }
+        }
+    }
+
+    private static async Task<bool> ColumnExistsAsync(AppDbContext dbContext, string tableName, string columnName)
+    {
+        var connection = dbContext.Database.GetDbConnection();
+        var shouldCloseConnection = connection.State != ConnectionState.Open;
+
+        if (shouldCloseConnection)
+        {
+            await connection.OpenAsync();
+        }
+
+        try
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                SELECT COUNT(*)
+                FROM information_schema.columns
+                WHERE table_schema = DATABASE()
+                  AND table_name = @tableName
+                  AND column_name = @columnName
+                """;
+
+            var tableParameter = command.CreateParameter();
+            tableParameter.ParameterName = "@tableName";
+            tableParameter.Value = tableName;
+            command.Parameters.Add(tableParameter);
+
+            var columnParameter = command.CreateParameter();
+            columnParameter.ParameterName = "@columnName";
+            columnParameter.Value = columnName;
+            command.Parameters.Add(columnParameter);
 
             var result = await command.ExecuteScalarAsync();
             return Convert.ToInt32(result) > 0;

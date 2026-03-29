@@ -35,6 +35,14 @@ public class IdeasController : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet("submission-window")]
+    [Authorize(Roles = "STAFF,QA_COORDINATOR")]
+    public async Task<IActionResult> GetSubmissionWindow(CancellationToken cancellationToken)
+    {
+        var submissionWindow = await _ideaService.GetSubmissionWindowAsync(cancellationToken);
+        return Ok(ToDto(submissionWindow));
+    }
+
     [HttpGet("export/csv")]
     [Authorize(Roles = "QA_MANAGER")]
     public async Task<IActionResult> ExportIdeasCsv(CancellationToken cancellationToken)
@@ -45,6 +53,8 @@ public class IdeasController : ControllerBase
             .Include(x => x.AuthorUser)
                 .ThenInclude(x => x.Role)
             .Include(x => x.Department)
+            .Include(x => x.ClosurePeriod)
+                .ThenInclude(x => x.AcademicYear)
             .Include(x => x.IdeaCategories)
                 .ThenInclude(x => x.Category)
             .Include(x => x.Comments)
@@ -67,6 +77,11 @@ public class IdeasController : ControllerBase
             Csv("AuthorRole"),
             Csv("DepartmentId"),
             Csv("DepartmentName"),
+            Csv("AcademicYear"),
+            Csv("ClosurePeriod"),
+            Csv("IdeaStartAt"),
+            Csv("IdeaEndAt"),
+            Csv("CommentEndAt"),
             Csv("IsAnonymous"),
             Csv("ViewCount"),
             Csv("IdeaCreatedAt"),
@@ -107,6 +122,11 @@ public class IdeasController : ControllerBase
                 Csv(ToRoleLabel(idea.AuthorUser.Role.RoleName)),
                 Csv(idea.DepartmentId),
                 Csv(idea.Department.Name),
+                Csv(idea.ClosurePeriod.AcademicYear.YearName),
+                Csv(idea.ClosurePeriod.Title),
+                Csv(idea.ClosurePeriod.IdeaStartAt.ToString("O")),
+                Csv(idea.ClosurePeriod.IdeaEndAt.ToString("O")),
+                Csv(idea.ClosurePeriod.CommentEndAt.ToString("O")),
                 Csv(idea.IsAnonymous),
                 Csv(idea.ViewCount),
                 Csv(idea.CreatedAt.ToString("O")),
@@ -148,16 +168,21 @@ public class IdeasController : ControllerBase
             return Unauthorized();
         }
 
-        var comment = await _ideaService.AddCommentAsync(
+        var result = await _ideaService.AddCommentAsync(
             new AddIdeaCommentInput(ideaId, userId, request.Content),
             cancellationToken);
 
-        if (comment is null)
+        return result.Status switch
         {
-            return NotFound(new { message = "Idea not found." });
-        }
-
-        return StatusCode(201, ToDto(comment));
+            IdeaCommentMutationStatus.IdeaNotFound => NotFound(new { message = "Idea not found." }),
+            IdeaCommentMutationStatus.UserNotFound => NotFound(new { message = "User not found." }),
+            IdeaCommentMutationStatus.CommentClosed => StatusCode(409, new
+            {
+                message = "Comment is not available at the moment.",
+                commentEndAt = result.CommentEndAt
+            }),
+            _ => StatusCode(201, ToDto(result.Comment!))
+        };
     }
 
     [HttpPut("{ideaId:int}/vote")]
@@ -206,40 +231,20 @@ public class IdeasController : ControllerBase
             return Unauthorized();
         }
 
-        var createdIdea = await _ideaService.CreateIdeaAsync(
+        var result = await _ideaService.CreateIdeaAsync(
             new CreateIdeaInput(userId, request.Title, request.Content, request.IsAnonymous, categoryIds),
             cancellationToken);
 
-        if (createdIdea is null)
+        return result.Status switch
         {
-            return NotFound(new { message = "User not found." });
-        }
-
-        var files = (request.Files ?? [])
-            .Where(x => x is not null && x.Length > 0)
-            .ToList();
-
-        if (files.Count > 0)
-        {
-            foreach (var file in files)
+            IdeaCreationStatus.UserNotFound => NotFound(new { message = "User not found." }),
+            IdeaCreationStatus.NoOpenClosurePeriod => StatusCode(409, new
             {
-                var storedAttachment = await _attachmentStorage.SaveAsync(createdIdea.IdeaId, file, cancellationToken);
-                _dbContext.Attachments.Add(new Attachment
-                {
-                    IdeaId = createdIdea.IdeaId,
-                    FilePath = storedAttachment.RelativePath,
-                    OriginalName = Path.GetFileName(file.FileName),
-                    ContentType = storedAttachment.ContentType,
-                    UploadedAt = DateTime.UtcNow,
-                });
-            }
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            createdIdea = await _ideaService.GetIdeaByIdAsync(createdIdea.IdeaId, false, cancellationToken) ?? createdIdea;
-        }
-
-        return StatusCode(201, ToDto(createdIdea, 0));
+                message = "No idea submission window is open right now.",
+                submissionWindow = ToDto(result.SubmissionWindow)
+            }),
+            _ => await FinishCreateIdeaAsync(result.Idea!, request.Files, cancellationToken)
+        };
     }
 
     [HttpPut("{ideaId:int}")]
@@ -315,6 +320,35 @@ public class IdeasController : ControllerBase
         return File(file.Stream, attachment.ContentType, attachment.OriginalName);
     }
 
+    private async Task<IActionResult> FinishCreateIdeaAsync(IdeaView createdIdea, IReadOnlyList<IFormFile>? files, CancellationToken cancellationToken)
+    {
+        var uploadFiles = (files ?? [])
+            .Where(x => x is not null && x.Length > 0)
+            .ToList();
+
+        if (uploadFiles.Count > 0)
+        {
+            foreach (var file in uploadFiles)
+            {
+                var storedAttachment = await _attachmentStorage.SaveAsync(createdIdea.IdeaId, file, cancellationToken);
+                _dbContext.Attachments.Add(new Attachment
+                {
+                    IdeaId = createdIdea.IdeaId,
+                    FilePath = storedAttachment.RelativePath,
+                    OriginalName = Path.GetFileName(file.FileName),
+                    ContentType = storedAttachment.ContentType,
+                    UploadedAt = DateTime.UtcNow,
+                });
+            }
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            createdIdea = await _ideaService.GetIdeaByIdAsync(createdIdea.IdeaId, false, cancellationToken) ?? createdIdea;
+        }
+
+        return StatusCode(201, ToDto(createdIdea, 0));
+    }
+
     private bool TryGetUserId(out int userId)
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -369,16 +403,34 @@ public class IdeasController : ControllerBase
             idea.AuthorName,
             idea.DepartmentId,
             idea.DepartmentName,
+            idea.ClosurePeriodId,
+            idea.ClosurePeriodTitle,
+            idea.AcademicYearId,
+            idea.AcademicYearName,
             idea.IsAnonymous,
             idea.ViewCount,
             idea.UpvoteCount,
             idea.DownvoteCount,
             currentUserVote,
             idea.CreatedAt,
+            idea.IdeaStartAt,
+            idea.IdeaEndAt,
+            idea.CommentEndAt,
+            idea.IsCommentOpen,
             idea.Categories,
             idea.CategoryIds,
             idea.Comments.Select(ToDto).ToList(),
             idea.Attachments.Select(ToDto).ToList());
+    }
+
+    private static IdeaSubmissionWindowDto ToDto(IdeaSubmissionWindowView submissionWindow)
+    {
+        return new IdeaSubmissionWindowDto(
+            submissionWindow.State,
+            submissionWindow.ClosurePeriodId,
+            submissionWindow.Title,
+            submissionWindow.IdeaStartAt,
+            submissionWindow.IdeaEndAt);
     }
 
     private static IdeaCommentDto ToDto(IdeaCommentView comment)

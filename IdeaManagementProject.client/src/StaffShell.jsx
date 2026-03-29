@@ -1,4 +1,4 @@
-import { canCreateIdeas, canViewCategoryList, clearAuthSession, getAuthSession } from './authStorage';
+import { canCreateIdeas, canViewAcademicYearReports, canViewCategoryList, clearAuthSession, getAuthSession } from './authStorage';
 
 function pageStyle() {
     return {
@@ -116,6 +116,9 @@ export default function StaffShell({ activeMenu, footerText, children }) {
         { id: 'departments', icon: 'DP', label: 'Departments', path: '/staff/departments' },
         ...(user?.role === 'QA_COORDINATOR'
             ? [{ id: 'department-management', icon: 'DM', label: 'Department management', path: '/qa-coordinator/department-management' }]
+            : []),
+        ...(canViewAcademicYearReports(user)
+            ? [{ id: 'academic-year-reports', icon: 'AR', label: 'Academic year reports', path: '/qa-manager/academic-year-reports' }]
             : []),
         ...(canViewCategoryList(user) ? [{ id: 'categories', icon: 'CL', label: 'Category list', path: '/qa-manager/categories' }] : []),
     ];
