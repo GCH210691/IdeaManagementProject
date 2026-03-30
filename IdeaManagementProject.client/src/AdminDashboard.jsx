@@ -36,6 +36,9 @@ const kpiCardStyle = () => ({
 const kpiTopRowStyle = () => ({
     display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem',
 });
+// ⚠️ WARNING: Bản function declaration cũ của `changeBadgeStyle` KHÁC bản này —
+// nó không có param `positive` và hardcode màu xanh lá (#059669 / #ECFDF5).
+// Giữ bản này (có param) vì đúng hơn. Đồng thời fix call site trong KpiCard bên dưới.
 const changeBadgeStyle = (positive) => ({
     fontSize: '11px', fontWeight: 700,
     color: positive ? '#059669' : '#DC2626',
@@ -57,118 +60,13 @@ const legendItemStyle = () => ({
     display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px',
 });
 
-function subStyle() {
-    return {
-        margin: 0,
-        fontSize: '13px',
-        color: '#6B7280',
-    };
-}
-
-function exportBtnStyle() {
-    return {
-        padding: '0.5rem 1rem',
-        borderRadius: '8px',
-        border: 'none',
-        background: '#3B82F6',
-        color: '#fff',
-        fontSize: '13px',
-        fontWeight: 700,
-        cursor: 'pointer',
-        fontFamily: 'inherit',
-    };
-}
-
-function kpiGridStyle() {
-    return {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '1rem',
-        marginBottom: '1.5rem',
-    };
-}
-
-function kpiCardStyle() {
-    return {
-        background: '#fff',
-        borderRadius: '12px',
-        border: '1px solid #F3F4F6',
-        padding: '1.25rem',
-        boxSizing: 'border-box',
-    };
-}
-
-function kpiTopRowStyle() {
-    return {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: '1rem',
-    };
-}
-
-function changeBadgeStyle() {
-    return {
-        fontSize: '11px',
-        fontWeight: 700,
-        color: '#059669',
-        background: '#ECFDF5',
-        padding: '2px 8px',
-        borderRadius: '999px',
-    };
-}
-
-function twoColStyle() {
-    return {
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '1.5rem',
-        marginBottom: '1.5rem',
-    };
-}
-
-function chartCardStyle() {
-    return {
-        background: '#fff',
-        borderRadius: '12px',
-        border: '1px solid #F3F4F6',
-        padding: '1.25rem',
-        boxSizing: 'border-box',
-    };
-}
-
-function chartTitleStyle() {
-    return {
-        margin: '0 0 1rem 0',
-        fontSize: '13px',
-        fontWeight: 700,
-        color: '#1F2937',
-    };
-}
-
-function pieRowStyle() {
-    return {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '1rem',
-    };
-}
-
-function legendItemStyle() {
-    return {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: '6px',
-    };
-}
-
 function KpiCard({ icon, label, value, change }) {
     return (
         <div style={kpiCardStyle()}>
             <div style={kpiTopRowStyle()}>
                 <span style={{ fontSize: '15px', fontWeight: 800, color: '#1D4ED8' }}>{icon}</span>
-                {change && <span style={changeBadgeStyle()}>{change}</span>}
+                {/* FIX: truyền !!change vào changeBadgeStyle thay vì gọi không arg */}
+                {change && <span style={changeBadgeStyle(!!change)}>{change}</span>}
             </div>
             <div style={{ fontSize: '1.875rem', fontWeight: 900, color: '#111827' }}>{value}</div>
             <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>{label}</div>

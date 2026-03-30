@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("IdeaManagementProject.Server")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4de8bb53db0f8baf0c822f493b4bf5faca8b925a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b4de9a44d6ea0ce67217f45ea7a290dc67b2662f")]
 [assembly: System.Reflection.AssemblyProductAttribute("IdeaManagementProject.Server")]
 [assembly: System.Reflection.AssemblyTitleAttribute("IdeaManagementProject.Server")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
