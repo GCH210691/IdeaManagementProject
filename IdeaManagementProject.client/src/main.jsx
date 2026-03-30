@@ -11,10 +11,13 @@ import RoleLandingPage from './RoleLandingPage.jsx';
 import AdminDashboard from './AdminDashboard.jsx';
 import AdminAccountsPage from './AdminAccountsPage.jsx';
 import AdminDepartmentsPage from './AdminDepartmentsPage.jsx';
+import AdminClosureManagementPage from './AdminClosureManagementPage.jsx';
 import MyIdeasPage from './MyIdeasPage.jsx';
 import DepartmentIdeasPage from './DepartmentIdeasPage.jsx';
 import CategoryListPage from './CategoryListPage.jsx';
 import CategoryEditPage from './CategoryEditPage.jsx';
+import QaCoordinatorDepartmentManagementPage from './QaCoordinatorDepartmentManagementPage.jsx';
+import QaManagerAcademicYearReportsPage from './QaManagerAcademicYearReportsPage.jsx';
 
 const path = window.location.pathname.toLowerCase();
 
@@ -30,12 +33,18 @@ if (path === '/register') {
     Root = AdminAccountsPage;
 } else if (path === '/admin/departments') {
     Root = AdminDepartmentsPage;
+} else if (path === '/admin/closure-periods') {
+    Root = AdminClosureManagementPage;
 } else if (path === '/staff/dashboard') {
     Root = Dashboard;
 } else if (path === '/staff/my-ideas') {
     Root = MyIdeasPage;
 } else if (path === '/staff/departments') {
     Root = DepartmentIdeasPage;
+} else if (path === '/qa-coordinator/department-management') {
+    Root = QaCoordinatorDepartmentManagementPage;
+} else if (path === '/qa-manager/academic-year-reports') {
+    Root = QaManagerAcademicYearReportsPage;
 } else if (path === '/qa-manager/categories') {
     Root = CategoryListPage;
 } else if (/^\/qa-manager\/categories\/\d+\/edit$/.test(path)) {

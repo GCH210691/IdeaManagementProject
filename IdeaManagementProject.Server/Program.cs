@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using IdeaManagementProject.Server.Application.Services;
 using IdeaManagementProject.Server.Infrastructure.Persistence;
 using IdeaManagementProject.Server.Infrastructure.Seeding;
+using IdeaManagementProject.Server.Infrastructure.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,8 +18,12 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("DefaultConnection"))
+        connectionString,
+        ServerVersion.AutoDetect(connectionString),
+        mySqlOptions => mySqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(10),
+            errorNumbersToAdd: null)
     ));
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 
@@ -67,6 +72,7 @@ builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IIdeaService, IdeaService>();
+builder.Services.AddSingleton<IIdeaAttachmentStorage, IdeaAttachmentStorage>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -109,6 +115,13 @@ if (app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
+<<<<<<< HEAD
+=======
+else
+{
+    app.UseHttpsRedirection();
+}
+>>>>>>> main
 
 app.UseAuthentication();
 app.UseAuthorization();

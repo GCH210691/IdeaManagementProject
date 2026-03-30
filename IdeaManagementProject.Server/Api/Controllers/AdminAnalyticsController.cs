@@ -123,7 +123,11 @@ public class AdminAnalyticsController : ControllerBase
     {
         var data = await _dbContext.Ideas
             .AsNoTracking()
+<<<<<<< HEAD
             .Where(x => x.DepartmentId != null)
+=======
+            .Where(x => x.Department != null)
+>>>>>>> main
             .GroupBy(x => x.Department.Name)
             .Select(g => new
             {

@@ -1,6 +1,7 @@
 // src/analyticsApi.js
 // Service layer for Admin Analytics API
 
+<<<<<<< HEAD
 const BASE_URL = 'http://localhost:5111/api/admin/analytics';
 
 function getToken() {
@@ -24,6 +25,17 @@ function authHeaders() {
 
 async function apiFetch(path) {
     const res = await fetch(`${BASE_URL}${path}`, { headers: authHeaders() });
+=======
+import { BASE_URL, getAuthHeaders } from './authStorage';
+
+const ANALYTICS_BASE_URL = `${BASE_URL}/api/admin/analytics`;
+
+async function apiFetch(path) {
+    const res = await fetch(`${ANALYTICS_BASE_URL}${path}`, {
+        headers: getAuthHeaders({ Accept: 'application/json' }),
+    });
+
+>>>>>>> main
     if (!res.ok) throw new Error(`API error ${res.status}: ${path}`);
     return res.json();
 }

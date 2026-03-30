@@ -4,6 +4,7 @@ using IdeaManagementProject.Server.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace IdeaManagementProject.Server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260326155902_AddAttachments")]
+    partial class AddAttachments
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,29 +24,6 @@ namespace IdeaManagementProject.Server.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
-
-            modelBuilder.Entity("IdeaManagementProject.Server.Domain.Entities.AcademicYear", b =>
-                {
-                    b.Property<int>("AcademicYearId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("academic_year_id");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("AcademicYearId"));
-
-                    b.Property<string>("YearName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)")
-                        .HasColumnName("year_name");
-
-                    b.HasKey("AcademicYearId");
-
-                    b.HasIndex("YearName")
-                        .IsUnique();
-
-                    b.ToTable("AcademicYear", (string)null);
-                });
 
             modelBuilder.Entity("IdeaManagementProject.Server.Domain.Entities.Attachment", b =>
                 {
@@ -108,44 +88,6 @@ namespace IdeaManagementProject.Server.Migrations
                         .IsUnique();
 
                     b.ToTable("Category", (string)null);
-                });
-
-            modelBuilder.Entity("IdeaManagementProject.Server.Domain.Entities.ClosurePeriod", b =>
-                {
-                    b.Property<int>("ClosurePeriodId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("closure_period_id");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("ClosurePeriodId"));
-
-                    b.Property<int>("AcademicYearId")
-                        .HasColumnType("int")
-                        .HasColumnName("academic_year_id");
-
-                    b.Property<DateTime>("CommentEndAt")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("comment_end_at");
-
-                    b.Property<DateTime>("IdeaEndAt")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("idea_end_at");
-
-                    b.Property<DateTime>("IdeaStartAt")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("idea_start_at");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)")
-                        .HasColumnName("title");
-
-                    b.HasKey("ClosurePeriodId");
-
-                    b.HasIndex("AcademicYearId");
-
-                    b.ToTable("ClosurePeriod", (string)null);
                 });
 
             modelBuilder.Entity("IdeaManagementProject.Server.Domain.Entities.Comment", b =>
@@ -222,10 +164,6 @@ namespace IdeaManagementProject.Server.Migrations
                         .HasColumnType("int")
                         .HasColumnName("author_user_id");
 
-                    b.Property<int>("ClosurePeriodId")
-                        .HasColumnType("int")
-                        .HasColumnName("closure_period_id");
-
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("longtext")
@@ -258,8 +196,6 @@ namespace IdeaManagementProject.Server.Migrations
                     b.HasKey("IdeaId");
 
                     b.HasIndex("AuthorUserId");
-
-                    b.HasIndex("ClosurePeriodId");
 
                     b.HasIndex("DepartmentId");
 
@@ -399,17 +335,6 @@ namespace IdeaManagementProject.Server.Migrations
                     b.Navigation("Idea");
                 });
 
-            modelBuilder.Entity("IdeaManagementProject.Server.Domain.Entities.ClosurePeriod", b =>
-                {
-                    b.HasOne("IdeaManagementProject.Server.Domain.Entities.AcademicYear", "AcademicYear")
-                        .WithMany("ClosurePeriods")
-                        .HasForeignKey("AcademicYearId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("AcademicYear");
-                });
-
             modelBuilder.Entity("IdeaManagementProject.Server.Domain.Entities.Comment", b =>
                 {
                     b.HasOne("IdeaManagementProject.Server.Domain.Entities.User", "AuthorUser")
@@ -447,12 +372,6 @@ namespace IdeaManagementProject.Server.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("IdeaManagementProject.Server.Domain.Entities.ClosurePeriod", "ClosurePeriod")
-                        .WithMany("Ideas")
-                        .HasForeignKey("ClosurePeriodId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("IdeaManagementProject.Server.Domain.Entities.Department", "Department")
                         .WithMany("Ideas")
                         .HasForeignKey("DepartmentId")
@@ -460,8 +379,6 @@ namespace IdeaManagementProject.Server.Migrations
                         .IsRequired();
 
                     b.Navigation("AuthorUser");
-
-                    b.Navigation("ClosurePeriod");
 
                     b.Navigation("Department");
                 });
@@ -523,19 +440,9 @@ namespace IdeaManagementProject.Server.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("IdeaManagementProject.Server.Domain.Entities.AcademicYear", b =>
-                {
-                    b.Navigation("ClosurePeriods");
-                });
-
             modelBuilder.Entity("IdeaManagementProject.Server.Domain.Entities.Category", b =>
                 {
                     b.Navigation("IdeaCategories");
-                });
-
-            modelBuilder.Entity("IdeaManagementProject.Server.Domain.Entities.ClosurePeriod", b =>
-                {
-                    b.Navigation("Ideas");
                 });
 
             modelBuilder.Entity("IdeaManagementProject.Server.Domain.Entities.Department", b =>

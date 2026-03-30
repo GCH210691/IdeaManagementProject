@@ -202,6 +202,13 @@ function fieldStyle() {
     };
 }
 
+function multiSelectStyle() {
+    return {
+        ...fieldStyle(),
+        minHeight: '120px',
+    };
+}
+
 function tableWrapStyle() {
     return {
         overflowX: 'auto',
@@ -298,10 +305,10 @@ export default function AdminDepartmentsPage() {
     const [departments, setDepartments] = useState([]);
     const [qaCoordinators, setQaCoordinators] = useState([]);
     const [createName, setCreateName] = useState('');
-    const [createQaUserId, setCreateQaUserId] = useState('');
+    const [createQaUserIds, setCreateQaUserIds] = useState([]);
     const [editingDepartmentId, setEditingDepartmentId] = useState(0);
     const [search, setSearch] = useState('');
-    const [form, setForm] = useState({ name: '', qaCoordinatorUserId: '' });
+    const [form, setForm] = useState({ name: '', qaCoordinatorUserIds: [] });
     const [feedback, setFeedback] = useState({ type: 'info', text: 'Loading departments...' });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -380,13 +387,14 @@ export default function AdminDepartmentsPage() {
 
         return departments.filter((row) => (
             String(row.name || '').toLowerCase().includes(query)
-            || String(row.qaCoordinatorName || '').toLowerCase().includes(query)
+            || (Array.isArray(row.qaCoordinators)
+                && row.qaCoordinators.some((item) => String(item.name || '').toLowerCase().includes(query)))
         ));
     }, [departments, search]);
 
     const summary = useMemo(() => {
         const total = departments.length;
-        const assigned = departments.filter((row) => row.qaCoordinatorUserId).length;
+        const assigned = departments.filter((row) => Array.isArray(row.qaCoordinators) && row.qaCoordinators.length > 0).length;
         const unassigned = total - assigned;
         const available = qaCoordinators.length;
 
@@ -402,15 +410,21 @@ export default function AdminDepartmentsPage() {
         setEditingDepartmentId(row.departmentId);
         setForm({
             name: row.name || '',
-            qaCoordinatorUserId: row.qaCoordinatorUserId ? String(row.qaCoordinatorUserId) : '',
+            qaCoordinatorUserIds: Array.isArray(row.qaCoordinators)
+                ? row.qaCoordinators.map((item) => String(item.userId))
+                : [],
         });
         setFeedback({ type: 'info', text: '' });
     }
 
     function cancelEdit() {
         setEditingDepartmentId(0);
-        setForm({ name: '', qaCoordinatorUserId: '' });
+        setForm({ name: '', qaCoordinatorUserIds: [] });
         setFeedback({ type: 'info', text: '' });
+    }
+
+    function readSelectedValues(event) {
+        return Array.from(event.target.selectedOptions, (option) => option.value);
     }
 
     async function createDepartment() {
@@ -431,7 +445,7 @@ export default function AdminDepartmentsPage() {
                 }),
                 body: JSON.stringify({
                     name: createName.trim(),
-                    qaCoordinatorUserId: createQaUserId ? Number(createQaUserId) : null,
+                    qaCoordinatorUserIds: createQaUserIds.map((value) => Number(value)),
                 }),
             });
 
@@ -451,9 +465,9 @@ export default function AdminDepartmentsPage() {
                 return;
             }
 
-            setDepartments((current) => [...current, payload]);
             setCreateName('');
-            setCreateQaUserId('');
+            setCreateQaUserIds([]);
+            await loadData();
             setFeedback({ type: 'success', text: 'Department created.' });
         } catch (error) {
             const details = error instanceof Error ? error.message : String(error);
@@ -485,7 +499,7 @@ export default function AdminDepartmentsPage() {
                 }),
                 body: JSON.stringify({
                     name: form.name.trim(),
-                    qaCoordinatorUserId: form.qaCoordinatorUserId ? Number(form.qaCoordinatorUserId) : null,
+                    qaCoordinatorUserIds: form.qaCoordinatorUserIds.map((value) => Number(value)),
                 }),
             });
 
@@ -505,8 +519,8 @@ export default function AdminDepartmentsPage() {
                 return;
             }
 
-            setDepartments((current) => current.map((item) => (item.departmentId === editingDepartmentId ? payload : item)));
             setEditingDepartmentId(0);
+            await loadData();
             setFeedback({ type: 'success', text: 'Department updated.' });
         } catch (error) {
             const details = error instanceof Error ? error.message : String(error);
@@ -610,16 +624,19 @@ export default function AdminDepartmentsPage() {
                             />
                         </div>
                         <div>
-                            <label style={fieldLabelStyle()}>QA coordinator</label>
+                            <label style={fieldLabelStyle()}>QA coordinators</label>
                             <select
-                                value={createQaUserId}
-                                onChange={(event) => setCreateQaUserId(event.target.value)}
-                                style={fieldStyle()}>
-                                <option value="">No QA coordinator</option>
+                                multiple
+                                value={createQaUserIds}
+                                onChange={(event) => setCreateQaUserIds(readSelectedValues(event))}
+                                style={multiSelectStyle()}>
                                 {qaCoordinators.map((item) => (
                                     <option key={item.id} value={item.id}>{item.name} ({item.email})</option>
                                 ))}
                             </select>
+                            <div style={{ marginTop: '0.35rem', fontSize: '12px', color: '#6B7280' }}>
+                                Selected coordinators will be moved into this department.
+                            </div>
                         </div>
                         <button
                             type="button"
@@ -687,28 +704,34 @@ export default function AdminDepartmentsPage() {
                                             <td style={tdStyle()}>
                                                 {editing ? (
                                                     <select
-                                                        value={form.qaCoordinatorUserId}
-                                                        onChange={(event) => setForm((prev) => ({ ...prev, qaCoordinatorUserId: event.target.value }))}
-                                                        style={fieldStyle()}>
-                                                        <option value="">No QA coordinator</option>
+                                                        multiple
+                                                        value={form.qaCoordinatorUserIds}
+                                                        onChange={(event) => setForm((prev) => ({ ...prev, qaCoordinatorUserIds: readSelectedValues(event) }))}
+                                                        style={multiSelectStyle()}>
                                                         {qaCoordinators.map((item) => (
                                                             <option key={item.id} value={item.id}>{item.name} ({item.email})</option>
                                                         ))}
                                                     </select>
                                                 ) : (
                                                     <div>
-                                                        <div style={{ fontWeight: 700 }}>{row.qaCoordinatorName || 'No coordinator assigned'}</div>
-                                                        {row.qaCoordinatorEmail && (
-                                                            <div style={{ marginTop: '0.2rem', fontSize: '12px', color: '#6B7280' }}>
-                                                                {row.qaCoordinatorEmail}
-                                                            </div>
+                                                        {Array.isArray(row.qaCoordinators) && row.qaCoordinators.length > 0 ? (
+                                                            row.qaCoordinators.map((item) => (
+                                                                <div key={item.userId} style={{ marginBottom: '0.2rem' }}>
+                                                                    <div style={{ fontWeight: 700 }}>{item.name}</div>
+                                                                    <div style={{ fontSize: '12px', color: '#6B7280' }}>{item.email}</div>
+                                                                </div>
+                                                            ))
+                                                        ) : (
+                                                            <div style={{ fontWeight: 700 }}>No coordinator assigned</div>
                                                         )}
                                                     </div>
                                                 )}
                                             </td>
                                             <td style={tdStyle()}>
-                                                <span style={coordinatorBadgeStyle(Boolean(row.qaCoordinatorUserId))}>
-                                                    {row.qaCoordinatorUserId ? 'Assigned' : 'Unassigned'}
+                                                <span style={coordinatorBadgeStyle(Array.isArray(row.qaCoordinators) && row.qaCoordinators.length > 0)}>
+                                                    {Array.isArray(row.qaCoordinators) && row.qaCoordinators.length > 0
+                                                        ? `${row.qaCoordinators.length} assigned`
+                                                        : 'Unassigned'}
                                                 </span>
                                             </td>
                                             <td style={tdStyle()}>

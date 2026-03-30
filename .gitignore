@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-.vs/
-=======
 node_modules/
 dist/
 .vs/
@@ -16,4 +13,6 @@ obj/
 
 .dotnet/
 .tmp-category-build/
->>>>>>> 23f767897f862e06559d14442ade588373434953
+/.tmp-build-check/
+/IdeaManagementProject.Server/App_Data/idea-attachments/
+

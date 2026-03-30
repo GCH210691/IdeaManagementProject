@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
     PieChart, Pie, Cell,
     LineChart, Line,
@@ -6,7 +6,11 @@ import {
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 import AdminShell from './AdminShell';
+<<<<<<< HEAD
 import { requireAuth } from './dashboardData';
+=======
+import { getAuthSession, roleToPath } from './authStorage';
+>>>>>>> main
 import {
     fetchOverview,
     fetchRoleDistribution,
@@ -96,9 +100,23 @@ function Skeleton({ height = 160 }) {
     );
 }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function AdminDashboard() {
     const [activeMenu, setActiveMenu] = useState('overview');
+    const session = useMemo(() => getAuthSession(), []);
+    const user = session?.user;
+
+    // API states
+    const [overview, setOverview] = useState(null);
+    const [roleDistribution, setRoleDistribution] = useState([]);
+    const [categoryData, setCategoryData] = useState([]);
+    const [postFrequency, setPostFrequency] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     // API states
     const [overview, setOverview] = useState(null);
@@ -109,9 +127,72 @@ export default function AdminDashboard() {
     const [error, setError] = useState(null);
 
     useEffect(() => {
+<<<<<<< HEAD
         requireAuth();
         loadAllData();
     }, []);
+=======
+        if (!session?.token || !user) {
+            window.location.href = '/login';
+            return;
+        }
+
+        if (user.role !== 'ADMIN') {
+            window.location.href = roleToPath(user.role);
+            return;
+        }
+
+        loadAllData();
+    }, [session, user]);
+
+    async function loadAllData() {
+        setLoading(true);
+        setError(null);
+        try {
+            const [ovr, roles, cats, postFreq] = await Promise.all([
+                fetchOverview(),
+                fetchRoleDistribution(),
+                fetchIdeasByCategory(),
+                fetchPostFrequency(),
+            ]);
+
+            setOverview(ovr);
+
+            // Map role-distribution → { name, value, color }
+            setRoleDistribution(
+                roles.map((r, i) => ({
+                    name: r.roleName,
+                    value: r.count,
+                    color: ROLE_COLORS[i % ROLE_COLORS.length],
+                }))
+            );
+
+            // Map ideas-by-category → { name, ideas }
+            setCategoryData(
+                cats.map((c) => ({ name: c.categoryName, ideas: c.count }))
+            );
+
+            // Map post-frequency items → { month, posts }
+            // API chỉ trả ideasCount (posts), comments giữ mock = 0
+            setPostFrequency(
+                (postFreq.items ?? []).map((item) => ({
+                    month: item.period,
+                    posts: item.ideasCount,
+                    comments: 0,   // API chưa có comments count — để 0
+                }))
+            );
+        } catch (err) {
+            console.error('Analytics load error:', err);
+            setError('Không thể tải dữ liệu. Vui lòng thử lại.');
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    if (!session?.token || !user || user.role !== 'ADMIN') {
+        return null;
+    }
+>>>>>>> main
 
     async function loadAllData() {
         setLoading(true);

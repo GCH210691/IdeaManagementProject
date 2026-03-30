@@ -24,16 +24,40 @@ public class AdminDepartmentsController : ControllerBase
     {
         var departments = await _dbContext.Departments
             .AsNoTracking()
-            .Include(x => x.QaCoordinatorUser)
             .OrderBy(x => x.DepartmentId)
-            .Select(x => new AdminDepartmentDto(
-                x.DepartmentId,
-                x.Name,
-                x.QaCoordinatorUserId,
-                x.QaCoordinatorUser != null ? x.QaCoordinatorUser.Name : null))
             .ToListAsync(cancellationToken);
 
-        return Ok(departments);
+        var qaCoordinators = await _dbContext.Users
+            .AsNoTracking()
+            .Include(x => x.Role)
+            .Where(x => x.Role.RoleName == "QA_COORDINATOR")
+            .OrderBy(x => x.Name)
+            .ThenBy(x => x.UserId)
+            .ToListAsync(cancellationToken);
+
+        var coordinatorByDepartmentId = qaCoordinators
+            .GroupBy(x => x.DepartmentId)
+            .ToDictionary(
+                x => x.Key,
+                x => (IReadOnlyList<AdminDepartmentCoordinatorDto>)x
+                    .Select(user => new AdminDepartmentCoordinatorDto(user.UserId, user.Name, user.Email))
+                    .ToList());
+
+        var response = departments
+            .Select(department =>
+            {
+                coordinatorByDepartmentId.TryGetValue(
+                    department.DepartmentId,
+                    out var departmentCoordinators);
+
+                return new AdminDepartmentDto(
+                    department.DepartmentId,
+                    department.Name,
+                    departmentCoordinators ?? Array.Empty<AdminDepartmentCoordinatorDto>());
+            })
+            .ToList();
+
+        return Ok(response);
     }
 
     [HttpPost]
@@ -44,27 +68,27 @@ public class AdminDepartmentsController : ControllerBase
             return BadRequest(new { message = "Department name is required." });
         }
 
-        var qaCoordinator = await ResolveQaCoordinatorAsync(request.QaCoordinatorUserId, cancellationToken);
-        if (request.QaCoordinatorUserId is not null && qaCoordinator is null)
+        var qaCoordinators = await ResolveTrackedQaCoordinatorsAsync(request.QaCoordinatorUserIds, cancellationToken);
+        if (request.QaCoordinatorUserIds is not null && qaCoordinators is null)
         {
-            return BadRequest(new { message = "Invalid QA coordinator user." });
+            return BadRequest(new { message = "One or more QA coordinator users are invalid." });
         }
 
         var department = new Department
         {
-            Name = request.Name.Trim(),
-            QaCoordinatorUserId = request.QaCoordinatorUserId
+            Name = request.Name.Trim()
         };
 
         _dbContext.Departments.Add(department);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        var response = new AdminDepartmentDto(
-            department.DepartmentId,
-            department.Name,
-            department.QaCoordinatorUserId,
-            qaCoordinator?.Name);
+        if (qaCoordinators is not null && qaCoordinators.Count > 0)
+        {
+            AssignQaCoordinatorsToDepartment(qaCoordinators, department.DepartmentId);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
 
+        var response = await BuildDepartmentDtoAsync(department.DepartmentId, department.Name, cancellationToken);
         return StatusCode(201, response);
     }
 
@@ -77,7 +101,6 @@ public class AdminDepartmentsController : ControllerBase
         }
 
         var department = await _dbContext.Departments
-            .Include(x => x.QaCoordinatorUser)
             .FirstOrDefaultAsync(x => x.DepartmentId == departmentId, cancellationToken);
 
         if (department is null)
@@ -85,23 +108,22 @@ public class AdminDepartmentsController : ControllerBase
             return NotFound(new { message = "Department not found." });
         }
 
-        var qaCoordinator = await ResolveQaCoordinatorAsync(request.QaCoordinatorUserId, cancellationToken);
-        if (request.QaCoordinatorUserId is not null && qaCoordinator is null)
+        var qaCoordinators = await ResolveTrackedQaCoordinatorsAsync(request.QaCoordinatorUserIds, cancellationToken);
+        if (request.QaCoordinatorUserIds is not null && qaCoordinators is null)
         {
-            return BadRequest(new { message = "Invalid QA coordinator user." });
+            return BadRequest(new { message = "One or more QA coordinator users are invalid." });
         }
 
         department.Name = request.Name.Trim();
-        department.QaCoordinatorUserId = request.QaCoordinatorUserId;
+
+        if (qaCoordinators is not null && qaCoordinators.Count > 0)
+        {
+            AssignQaCoordinatorsToDepartment(qaCoordinators, department.DepartmentId);
+        }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        var response = new AdminDepartmentDto(
-            department.DepartmentId,
-            department.Name,
-            department.QaCoordinatorUserId,
-            qaCoordinator?.Name);
-
+        var response = await BuildDepartmentDtoAsync(department.DepartmentId, department.Name, cancellationToken);
         return Ok(response);
     }
 
@@ -135,23 +157,54 @@ public class AdminDepartmentsController : ControllerBase
         return NoContent();
     }
 
-    private async Task<User?> ResolveQaCoordinatorAsync(int? userId, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<User>?> ResolveTrackedQaCoordinatorsAsync(IReadOnlyList<int>? userIds, CancellationToken cancellationToken)
     {
-        if (userId is null)
+        if (userIds is null)
+        {
+            return Array.Empty<User>();
+        }
+
+        var uniqueUserIds = userIds
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+
+        if (uniqueUserIds.Count == 0)
+        {
+            return Array.Empty<User>();
+        }
+
+        var users = await _dbContext.Users
+            .Where(x => uniqueUserIds.Contains(x.UserId) && x.Role.RoleName == "QA_COORDINATOR")
+            .ToListAsync(cancellationToken);
+
+        if (users.Count != uniqueUserIds.Count)
         {
             return null;
         }
 
-        var user = await _dbContext.Users
+        return users;
+    }
+
+    private void AssignQaCoordinatorsToDepartment(IReadOnlyList<User> qaCoordinators, int departmentId)
+    {
+        foreach (var qaCoordinator in qaCoordinators)
+        {
+            qaCoordinator.DepartmentId = departmentId;
+        }
+    }
+
+    private async Task<AdminDepartmentDto> BuildDepartmentDtoAsync(int departmentId, string departmentName, CancellationToken cancellationToken)
+    {
+        var qaCoordinators = await _dbContext.Users
             .AsNoTracking()
             .Include(x => x.Role)
-            .FirstOrDefaultAsync(x => x.UserId == userId.Value, cancellationToken);
+            .Where(x => x.DepartmentId == departmentId && x.Role.RoleName == "QA_COORDINATOR")
+            .OrderBy(x => x.Name)
+            .ThenBy(x => x.UserId)
+            .Select(x => new AdminDepartmentCoordinatorDto(x.UserId, x.Name, x.Email))
+            .ToListAsync(cancellationToken);
 
-        if (user is null)
-        {
-            return null;
-        }
-
-        return user.Role.RoleName == "QA_COORDINATOR" ? user : null;
+        return new AdminDepartmentDto(departmentId, departmentName, qaCoordinators);
     }
 }
