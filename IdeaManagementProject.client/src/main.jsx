@@ -17,6 +17,7 @@ import DepartmentIdeasPage from './DepartmentIdeasPage.jsx';
 import CategoryListPage from './CategoryListPage.jsx';
 import CategoryEditPage from './CategoryEditPage.jsx';
 import QaCoordinatorDepartmentManagementPage from './QaCoordinatorDepartmentManagementPage.jsx';
+import QaCoordinatorNotificationsPage from './QaCoordinatorNotificationsPage.jsx';
 import QaManagerAcademicYearReportsPage from './QaManagerAcademicYearReportsPage.jsx';
 
 const path = window.location.pathname.toLowerCase();
@@ -43,6 +44,8 @@ if (path === '/register') {
     Root = DepartmentIdeasPage;
 } else if (path === '/qa-coordinator/department-management') {
     Root = QaCoordinatorDepartmentManagementPage;
+} else if (path === '/qa-coordinator/notifications') {
+    Root = QaCoordinatorNotificationsPage;
 } else if (path === '/qa-manager/academic-year-reports') {
     Root = QaManagerAcademicYearReportsPage;
 } else if (path === '/qa-manager/categories') {

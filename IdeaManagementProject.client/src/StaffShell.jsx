@@ -115,7 +115,10 @@ export default function StaffShell({ activeMenu, footerText, children }) {
         ...(canCreateIdeas(user) ? [{ id: 'myideas', icon: 'MY', label: 'My ideas', path: '/staff/my-ideas' }] : []),
         { id: 'departments', icon: 'DP', label: 'Departments', path: '/staff/departments' },
         ...(user?.role === 'QA_COORDINATOR'
-            ? [{ id: 'department-management', icon: 'DM', label: 'Department management', path: '/qa-coordinator/department-management' }]
+            ? [
+                { id: 'notifications', icon: 'NT', label: 'Notifications', path: '/qa-coordinator/notifications' },
+                { id: 'department-management', icon: 'DM', label: 'Department management', path: '/qa-coordinator/department-management' }
+            ]
             : []),
         ...(canViewAcademicYearReports(user)
             ? [{ id: 'academic-year-reports', icon: 'AR', label: 'Academic year reports', path: '/qa-manager/academic-year-reports' }]

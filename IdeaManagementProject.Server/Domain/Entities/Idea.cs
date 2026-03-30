@@ -19,4 +19,5 @@ public class Idea
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     public ICollection<Vote> Votes { get; set; } = new List<Vote>();
     public ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
+    public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 }
