@@ -1,41 +1,10 @@
 // src/analyticsApi.js
 // Service layer for Admin Analytics API
 
-<<<<<<< HEAD
-const BASE_URL = 'http://localhost:5111/api/admin/analytics';
-
-function getToken() {
-    try {
-        const raw = localStorage.getItem('uims_auth_session');
-        if (!raw) return null;
-        const session = JSON.parse(raw);
-        return session?.token ?? null;
-    } catch {
-        return null;
-    }
-}
-
-function authHeaders() {
-    const token = getToken();
-    return {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-}
-
-async function apiFetch(path) {
-    const res = await fetch(`${BASE_URL}${path}`, { headers: authHeaders() });
-=======
 import { BASE_URL, getAuthHeaders } from './authStorage';
 
-const ANALYTICS_BASE_URL = `${BASE_URL}/api/admin/analytics`;
 
 async function apiFetch(path) {
-    const res = await fetch(`${ANALYTICS_BASE_URL}${path}`, {
-        headers: getAuthHeaders({ Accept: 'application/json' }),
-    });
-
->>>>>>> main
     if (!res.ok) throw new Error(`API error ${res.status}: ${path}`);
     return res.json();
 }

@@ -115,13 +115,10 @@ if (app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
-<<<<<<< HEAD
-=======
 else
 {
     app.UseHttpsRedirection();
 }
->>>>>>> main
 
 app.UseAuthentication();
 app.UseAuthorization();
