@@ -6,7 +6,13 @@ import {
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 import AdminShell from './AdminShell';
-import { roleData, postFreq, categoryDist, onlineUsers, requireAuth } from './dashboardData';
+import { getAuthSession, roleToPath } from './authStorage';
+import {
+    fetchOverview,
+    fetchRoleDistribution,
+    fetchIdeasByCategory,
+    fetchPostFrequency,
+} from './analyticsApi';
 
 // ─── Màu cho donut chart role ────────────────────────────────────────────────
 const ROLE_COLORS = ['#3B82F6', '#6366F1', '#8B5CF6', '#1E3A5F', '#10B981', '#F59E0B'];
@@ -36,9 +42,6 @@ const kpiCardStyle = () => ({
 const kpiTopRowStyle = () => ({
     display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem',
 });
-// ⚠️ WARNING: Bản function declaration cũ của `changeBadgeStyle` KHÁC bản này —
-// nó không có param `positive` và hardcode màu xanh lá (#059669 / #ECFDF5).
-// Giữ bản này (có param) vì đúng hơn. Đồng thời fix call site trong KpiCard bên dưới.
 const changeBadgeStyle = (positive) => ({
     fontSize: '11px', fontWeight: 700,
     color: positive ? '#059669' : '#DC2626',
@@ -60,26 +63,67 @@ const legendItemStyle = () => ({
     display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px',
 });
 
+// ─── KPI Card ─────────────────────────────────────────────────────────────────
 function KpiCard({ icon, label, value, change }) {
+    const isPositive = change == null || parseFloat(change) >= 0;
     return (
         <div style={kpiCardStyle()}>
             <div style={kpiTopRowStyle()}>
                 <span style={{ fontSize: '15px', fontWeight: 800, color: '#1D4ED8' }}>{icon}</span>
-                {/* FIX: truyền !!change vào changeBadgeStyle thay vì gọi không arg */}
-                {change && <span style={changeBadgeStyle(!!change)}>{change}</span>}
+                {change != null && (
+                    <span style={changeBadgeStyle(isPositive)}>
+                        {isPositive ? '+' : ''}{change}%
+                    </span>
+                )}
             </div>
-            <div style={{ fontSize: '1.875rem', fontWeight: 900, color: '#111827' }}>{value}</div>
+            <div style={{ fontSize: '1.875rem', fontWeight: 900, color: '#111827' }}>
+                {value ?? '—'}
+            </div>
             <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>{label}</div>
         </div>
     );
 }
 
+// ─── Skeleton loader ──────────────────────────────────────────────────────────
+function Skeleton({ height = 160 }) {
+    return (
+        <div style={{
+            height, borderRadius: '8px',
+            background: 'linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%)',
+            backgroundSize: '200% 100%',
+            animation: 'shimmer 1.4s infinite',
+        }} />
+    );
+}
+
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 export default function AdminDashboard() {
     const [activeMenu, setActiveMenu] = useState('overview');
+    const session = useMemo(() => getAuthSession(), []);
+    const user = session?.user;
+
+    // API states
+    const [overview, setOverview] = useState(null);
+    const [roleDistribution, setRoleDistribution] = useState([]);
+    const [categoryData, setCategoryData] = useState([]);
+    const [postFrequency, setPostFrequency] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        requireAuth();
-    }, []);
+        if (!session?.token || !user) {
+            window.location.href = '/login';
+            return;
+        }
+
+        if (user.role !== 'ADMIN') {
+            window.location.href = roleToPath(user.role);
+            return;
+        }
+
+        loadAllData();
+    }, [session, user]);
 
     async function loadAllData() {
         setLoading(true);
@@ -123,6 +167,10 @@ export default function AdminDashboard() {
         } finally {
             setLoading(false);
         }
+    }
+
+    if (!session?.token || !user || user.role !== 'ADMIN') {
+        return null;
     }
 
     return (
