@@ -1,566 +1,155 @@
 import { useEffect, useMemo, useState } from 'react';
 import { canViewCategoryList, getAuthHeaders, getAuthSession, roleToPath } from './authStorage';
 import StaffShell from './StaffShell';
+import { C, card, font } from './theme';
 
-function containerStyle() {
-    return { maxWidth: '1240px', margin: '0 auto' };
-}
-
-function headerStyle() {
-    return {
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between',
-        gap: '1rem',
-        marginBottom: '1.5rem',
-        flexWrap: 'wrap',
-    };
-}
-
-function titleStyle() {
-    return { margin: 0, fontSize: '1.75rem', fontWeight: 900, color: '#111827' };
-}
-
-function subtitleStyle() {
-    return { margin: '0.35rem 0 0 0', color: '#6B7280', fontSize: '13px' };
-}
-
-function primaryButtonStyle() {
-    return {
-        padding: '0.7rem 1rem',
-        borderRadius: '10px',
-        border: 'none',
-        background: '#2563EB',
-        color: '#FFFFFF',
-        fontSize: '13px',
-        fontWeight: 700,
-        cursor: 'pointer',
-        fontFamily: 'inherit',
-    };
-}
-
-function secondaryButtonStyle() {
-    return {
-        padding: '0.7rem 1rem',
-        borderRadius: '10px',
-        border: '1px solid #D1D5DB',
-        background: '#FFFFFF',
-        color: '#111827',
-        fontSize: '13px',
-        fontWeight: 700,
-        cursor: 'pointer',
-        fontFamily: 'inherit',
-    };
-}
-
-function summaryGridStyle() {
-    return {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-        gap: '1rem',
-        marginBottom: '1.25rem',
-    };
-}
-
-function summaryCardStyle() {
-    return {
-        background: '#FFFFFF',
-        border: '1px solid #E5E7EB',
-        borderRadius: '14px',
-        padding: '1rem 1.1rem',
-        boxSizing: 'border-box',
-    };
-}
-
-function summaryValueStyle() {
-    return { fontSize: '1.75rem', fontWeight: 900, color: '#111827', lineHeight: 1.1 };
-}
-
-function summaryLabelStyle() {
-    return { marginTop: '0.35rem', fontSize: '12px', color: '#6B7280' };
-}
-
-function bannerStyle(type) {
-    const palette = {
-        info: { color: '#1D4ED8', background: '#EFF6FF', border: '#BFDBFE' },
-        success: { color: '#047857', background: '#ECFDF5', border: '#A7F3D0' },
-        error: { color: '#B91C1C', background: '#FEF2F2', border: '#FECACA' },
-    };
-
-    const selected = palette[type] || palette.info;
-
-    return {
-        marginBottom: '1rem',
-        padding: '0.85rem 1rem',
-        borderRadius: '12px',
-        border: `1px solid ${selected.border}`,
-        background: selected.background,
-        color: selected.color,
-        fontSize: '13px',
-        fontWeight: 600,
-    };
-}
-
-function cardStyle() {
-    return {
-        background: '#FFFFFF',
-        border: '1px solid #E5E7EB',
-        borderRadius: '16px',
-        padding: '1.1rem',
-        boxSizing: 'border-box',
-    };
-}
-
-function createGridStyle() {
-    return {
-        display: 'grid',
-        gridTemplateColumns: 'minmax(240px, 1fr) auto',
-        gap: '0.85rem',
-        alignItems: 'end',
-    };
-}
-
-function fieldLabelStyle() {
-    return {
-        display: 'block',
-        marginBottom: '0.45rem',
-        fontSize: '12px',
-        color: '#6B7280',
-        fontWeight: 700,
-    };
-}
-
-function fieldStyle() {
-    return {
-        width: '100%',
-        border: '1px solid #D1D5DB',
-        borderRadius: '10px',
-        padding: '0.55rem 0.7rem',
-        fontSize: '13px',
-        fontFamily: 'inherit',
-        boxSizing: 'border-box',
-        background: '#FFFFFF',
-        color: '#111827',
-    };
-}
-
-function toolbarStyle() {
-    return {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '1rem',
-        flexWrap: 'wrap',
-        marginBottom: '1rem',
-    };
-}
-
-function searchWrapStyle() {
-    return {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.6rem',
-        width: 'min(360px, 100%)',
-        background: '#FFFFFF',
-        border: '1px solid #D1D5DB',
-        borderRadius: '12px',
-        padding: '0.65rem 0.8rem',
-        boxSizing: 'border-box',
-    };
-}
-
-function searchInputStyle() {
-    return {
-        width: '100%',
-        border: 'none',
-        outline: 'none',
-        fontSize: '13px',
-        fontFamily: 'inherit',
-        background: 'transparent',
-        color: '#111827',
-    };
-}
-
-function tableWrapStyle() {
-    return { overflowX: 'auto' };
-}
-
-function tableStyle() {
-    return { width: '100%', borderCollapse: 'collapse', minWidth: '960px' };
-}
-
-function thStyle() {
-    return {
-        textAlign: 'left',
-        padding: '0.85rem 0.75rem',
-        fontSize: '12px',
-        fontWeight: 700,
-        color: '#6B7280',
-        borderBottom: '1px solid #E5E7EB',
-        whiteSpace: 'nowrap',
-    };
-}
-
-function tdStyle() {
-    return {
-        padding: '0.95rem 0.75rem',
-        borderBottom: '1px solid #F3F4F6',
-        fontSize: '13px',
-        color: '#111827',
-        verticalAlign: 'top',
-    };
-}
-
-function tagStyle() {
-    return {
-        display: 'inline-block',
-        padding: '2px 8px',
-        marginRight: '0.35rem',
-        marginBottom: '0.35rem',
-        borderRadius: '999px',
-        background: '#EEF2FF',
-        color: '#3730A3',
-        fontSize: '11px',
-        fontWeight: 600,
-    };
-}
-
-function inlineButtonStyle(kind) {
-    if (kind === 'danger') {
-        return {
-            ...secondaryButtonStyle(),
-            padding: '0.45rem 0.8rem',
-            color: '#B91C1C',
-            borderColor: '#FECACA',
-            background: '#FEF2F2',
-        };
-    }
-
-    if (kind === 'primary') {
-        return {
-            ...primaryButtonStyle(),
-            padding: '0.45rem 0.8rem',
-        };
-    }
-
-    return {
-        ...secondaryButtonStyle(),
-        padding: '0.45rem 0.8rem',
-    };
-}
+const inp = {width:'100%',boxSizing:'border-box',padding:'0.55rem 0.75rem',borderRadius:'7px',border:`1.5px solid ${C.border}`,fontSize:'13px',color:C.text,fontFamily:font,outline:'none'};
 
 export default function CategoryListPage() {
-    const session = useMemo(() => getAuthSession(), []);
-    const user = session?.user;
+  const session = useMemo(()=>getAuthSession(),[]);
+  const user = session?.user;
+  const [categories,setCategories]=useState([]);
+  const [search,setSearch]=useState('');
+  const [createName,setCreateName]=useState('');
+  const [feedback,setFeedback]=useState({type:'info',text:'Loading…'});
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
 
-    const [categories, setCategories] = useState([]);
-    const [search, setSearch] = useState('');
-    const [createName, setCreateName] = useState('');
-    const [feedback, setFeedback] = useState({ type: 'info', text: 'Loading categories...' });
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
+  async function loadCategories(showMsg=false) {
+    setLoading(true);
+    try {
+      const res=await fetch('/api/qa-manager/categories',{headers:getAuthHeaders({Accept:'application/json'})});
+      if(res.status===401){window.location.href='/login';return;}
+      if(res.status===403){window.location.href=roleToPath(user?.role);return;}
+      if(!res.ok){setFeedback({type:'error',text:`Load failed: ${res.status}`});return;}
+      const data=await res.json();
+      const nextCats=Array.isArray(data)?data:[];
+      setCategories(nextCats);
+      setFeedback(showMsg?{type:'success',text:`Loaded ${nextCats.length} categories.`}:{type:'info',text:''});
+    }catch(e){setFeedback({type:'error',text:'Load error: '+(e instanceof Error?e.message:String(e))});}
+    finally{setLoading(false);}
+  }
 
-    async function loadCategories(showLoadedMessage = false) {
-        setLoading(true);
+  useEffect(()=>{
+    if(!session?.token||!user){window.location.href='/login';return;}
+    if(!canViewCategoryList(user)){window.location.href=roleToPath(user.role);return;}
+    loadCategories();
+  },[session,user]);
 
-        try {
-            const response = await fetch('/api/qa-manager/categories', {
-                headers: getAuthHeaders({ Accept: 'application/json' }),
-            });
+  const filteredCats = useMemo(()=>{ const q=search.trim().toLowerCase(); if(!q)return categories; return categories.filter(c=>String(c.name||'').toLowerCase().includes(q)); },[categories,search]);
+  const summary = useMemo(()=>{
+    const total=categories.length;
+    const used=categories.filter(c=>Array.isArray(c.ideas)&&c.ideas.length>0).length;
+    const links=categories.reduce((s,c)=>s+(Array.isArray(c.ideas)?c.ideas.length:0),0);
+    return [{label:'Total',value:total,accent:'#6366F1'},{label:'Used',value:used,accent:'#10B981'},{label:'Unused',value:total-used,accent:'#F59E0B'},{label:'Idea links',value:links,accent:'#06B6D4'}];
+  },[categories]);
 
-            if (response.status === 401) {
-                window.location.href = '/login';
-                return;
-            }
+  async function createCategory() {
+    if(!createName.trim()){setFeedback({type:'error',text:'Category name is required.'});return;}
+    setSaving(true);setFeedback({type:'info',text:'Creating…'});
+    try {
+      const res=await fetch('/api/qa-manager/categories',{method:'POST',headers:getAuthHeaders({'Content-Type':'application/json',Accept:'application/json'}),body:JSON.stringify({name:createName.trim()})});
+      if(res.status===401){window.location.href='/login';return;}
+      if(res.status===403){window.location.href=roleToPath(user?.role);return;}
+      const p=await res.json().catch(()=>null);
+      if(!res.ok){setFeedback({type:'error',text:p?.message||`Create failed: ${res.status}`});return;}
+      setCategories(c=>[...c,p]);setCreateName('');setFeedback({type:'success',text:'Category created.'});
+    }catch(e){setFeedback({type:'error',text:'Error: '+(e instanceof Error?e.message:String(e))});}
+    finally{setSaving(false);}
+  }
 
-            if (response.status === 403) {
-                window.location.href = roleToPath(user?.role);
-                return;
-            }
+  async function deleteCategory(cat) {
+    if(!window.confirm(`Delete "${cat.name}"?`))return;
+    setSaving(true);setFeedback({type:'info',text:'Deleting…'});
+    try {
+      const res=await fetch(`/api/qa-manager/categories/${cat.categoryId}`,{method:'DELETE',headers:getAuthHeaders({Accept:'application/json'})});
+      if(res.status===401){window.location.href='/login';return;}
+      if(res.status===403){window.location.href=roleToPath(user?.role);return;}
+      if(res.status===409){const p=await res.json().catch(()=>null);setFeedback({type:'error',text:p?.message||'Category is in use.'});return;}
+      if(!res.ok){const p=await res.json().catch(()=>null);setFeedback({type:'error',text:p?.message||`Delete failed: ${res.status}`});return;}
+      setCategories(c=>c.filter(i=>i.categoryId!==cat.categoryId));setFeedback({type:'success',text:'Category deleted.'});
+    }catch(e){setFeedback({type:'error',text:'Error: '+(e instanceof Error?e.message:String(e))});}
+    finally{setSaving(false);}
+  }
 
-            if (!response.ok) {
-                setFeedback({ type: 'error', text: `Load failed: ${response.status}` });
-                return;
-            }
+  if(!session?.token||!user)return null;
 
-            const data = await response.json();
-            const nextCategories = Array.isArray(data) ? data : [];
-            setCategories(nextCategories);
-            setFeedback(showLoadedMessage
-                ? { type: 'success', text: `Loaded ${nextCategories.length} categor${nextCategories.length === 1 ? 'y' : 'ies'}.` }
-                : { type: 'info', text: '' });
-        } catch (error) {
-            const details = error instanceof Error ? error.message : String(error);
-            setFeedback({ type: 'error', text: `Load error: ${details}` });
-        } finally {
-            setLoading(false);
-        }
-    }
+  const fb={info:{bg:'#F0F9FF',br:'#BAE6FD',c:'#0369A1'},success:{bg:'#ECFDF5',br:'#A7F3D0',c:'#065F46'},error:{bg:'#FEF2F2',br:'#FECACA',c:'#B91C1C'}}[feedback.type]||{bg:'#F0F9FF',br:'#BAE6FD',c:'#0369A1'};
 
-    useEffect(() => {
-        if (!session?.token || !user) {
-            window.location.href = '/login';
-            return;
-        }
+  return (
+    <StaffShell activeMenu="categories" footerText={`${categories.length} categories`}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1.75rem',flexWrap:'wrap',gap:'1rem'}}>
+        <div>
+          <h1 style={{margin:'0 0 4px',fontSize:'1.55rem',fontWeight:800,color:C.text,letterSpacing:'-0.02em'}}>Category List</h1>
+          <p style={{margin:0,fontSize:'13px',color:C.textSub}}>Create, review, edit, and delete idea categories.</p>
+        </div>
+        <button onClick={()=>loadCategories(true)} style={{padding:'0.55rem 1rem',border:'none',borderRadius:'8px',background:C.primary,color:'#fff',fontSize:'13px',fontWeight:600,cursor:'pointer',fontFamily:font}}>↺ Refresh</button>
+      </div>
 
-        if (!canViewCategoryList(user)) {
-            window.location.href = roleToPath(user.role);
-            return;
-        }
+      {feedback.text&&<div style={{padding:'0.75rem 1rem',borderRadius:'10px',border:`1px solid ${fb.br}`,background:fb.bg,color:fb.c,fontSize:'13px',fontWeight:500,marginBottom:'1.25rem'}}>{feedback.text}</div>}
 
-        loadCategories();
-    }, [session, user]);
+      {/* Stats */}
+      <div style={{display:'flex',gap:'1rem',marginBottom:'1.5rem',flexWrap:'wrap'}}>
+        {summary.map(s=>(
+          <div key={s.label} style={{...card,padding:'1.1rem',flex:1,minWidth:'130px',borderTop:`3px solid ${s.accent}`}}>
+            <div style={{fontSize:'1.7rem',fontWeight:800,color:C.text,lineHeight:1}}>{loading?'…':s.value}</div>
+            <div style={{fontSize:'11.5px',color:C.textSub,marginTop:'5px'}}>{s.label}</div>
+          </div>
+        ))}
+      </div>
 
-    const filteredCategories = useMemo(() => {
-        const query = search.trim().toLowerCase();
+      {/* Create */}
+      <div style={{...card,marginBottom:'1.25rem',display:'flex',gap:'0.75rem',alignItems:'center',flexWrap:'wrap'}}>
+        <input value={createName} onChange={e=>setCreateName(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')createCategory();}} placeholder="New category name…" disabled={saving}
+          style={{...inp,flex:1,minWidth:'200px'}}/>
+        <button onClick={createCategory} disabled={saving} style={{padding:'0.55rem 1.1rem',border:'none',borderRadius:'7px',background:C.primary,color:'#fff',fontSize:'13px',fontWeight:600,cursor:saving?'not-allowed':'pointer',fontFamily:font,whiteSpace:'nowrap'}}>
+          {saving?'…':'+ Create Category'}
+        </button>
+      </div>
 
-        if (!query) {
-            return categories;
-        }
-
-        return categories.filter((category) => (
-            String(category.name || '').toLowerCase().includes(query)
-            || (Array.isArray(category.ideas) && category.ideas.some((idea) => String(idea.title || '').toLowerCase().includes(query)))
-        ));
-    }, [categories, search]);
-
-    const summary = useMemo(() => {
-        const total = categories.length;
-        const used = categories.filter((category) => Array.isArray(category.ideas) && category.ideas.length > 0).length;
-        const unused = total - used;
-        const links = categories.reduce((sum, category) => sum + (Array.isArray(category.ideas) ? category.ideas.length : 0), 0);
-
-        return [
-            { label: 'Total categories', value: total },
-            { label: 'Used categories', value: used },
-            { label: 'Unused categories', value: unused },
-            { label: 'Idea links', value: links },
-        ];
-    }, [categories]);
-
-    async function createCategory() {
-        if (!createName.trim()) {
-            setFeedback({ type: 'error', text: 'Category name is required.' });
-            return;
-        }
-
-        setSaving(true);
-        setFeedback({ type: 'info', text: 'Creating category...' });
-
-        try {
-            const response = await fetch('/api/qa-manager/categories', {
-                method: 'POST',
-                headers: getAuthHeaders({
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                }),
-                body: JSON.stringify({ name: createName.trim() }),
-            });
-
-            if (response.status === 401) {
-                window.location.href = '/login';
-                return;
-            }
-
-            if (response.status === 403) {
-                window.location.href = roleToPath(user?.role);
-                return;
-            }
-
-            const payload = await response.json().catch(() => null);
-            if (!response.ok) {
-                setFeedback({ type: 'error', text: payload?.message || `Create failed: ${response.status}` });
-                return;
-            }
-
-            setCategories((current) => [...current, payload]);
-            setCreateName('');
-            setFeedback({ type: 'success', text: 'Category created.' });
-        } catch (error) {
-            const details = error instanceof Error ? error.message : String(error);
-            setFeedback({ type: 'error', text: `Create error: ${details}` });
-        } finally {
-            setSaving(false);
-        }
-    }
-
-    async function deleteCategory(category) {
-        if (!window.confirm(`Delete category "${category.name}"?`)) {
-            return;
-        }
-
-        setSaving(true);
-        setFeedback({ type: 'info', text: 'Deleting category...' });
-
-        try {
-            const response = await fetch(`/api/qa-manager/categories/${category.categoryId}`, {
-                method: 'DELETE',
-                headers: getAuthHeaders({ Accept: 'application/json' }),
-            });
-
-            if (response.status === 401) {
-                window.location.href = '/login';
-                return;
-            }
-
-            if (response.status === 403) {
-                window.location.href = roleToPath(user?.role);
-                return;
-            }
-
-            if (response.status === 409) {
-                const payload = await response.json().catch(() => null);
-                setFeedback({ type: 'error', text: payload?.message || 'Category is in use and cannot be deleted.' });
-                return;
-            }
-
-            if (!response.ok) {
-                const payload = await response.json().catch(() => null);
-                setFeedback({ type: 'error', text: payload?.message || `Delete failed: ${response.status}` });
-                return;
-            }
-
-            setCategories((current) => current.filter((item) => item.categoryId !== category.categoryId));
-            setFeedback({ type: 'success', text: 'Category deleted.' });
-        } catch (error) {
-            const details = error instanceof Error ? error.message : String(error);
-            setFeedback({ type: 'error', text: `Delete error: ${details}` });
-        } finally {
-            setSaving(false);
-        }
-    }
-
-    function openEdit(categoryId) {
-        window.location.href = `/qa-manager/categories/${categoryId}/edit`;
-    }
-
-    if (!session?.token || !user) {
-        return null;
-    }
-
-    return (
-        <StaffShell activeMenu="categories" footerText={`${categories.length} categories loaded`}>
-            <div style={containerStyle()}>
-                <div style={headerStyle()}>
-                    <div>
-                        <h1 style={titleStyle()}>Category List</h1>
-                        <p style={subtitleStyle()}>
-                            QA Manager can create, review, edit, and delete categories that are not yet linked to ideas.
-                        </p>
-                    </div>
-                    <button type="button" onClick={() => loadCategories(true)} style={primaryButtonStyle()}>
-                        Refresh categories
-                    </button>
-                </div>
-
-                {feedback.text && <div style={bannerStyle(feedback.type)}>{feedback.text}</div>}
-
-                <div style={summaryGridStyle()}>
-                    {summary.map((item) => (
-                        <div key={item.label} style={summaryCardStyle()}>
-                            <div style={summaryValueStyle()}>{item.value}</div>
-                            <div style={summaryLabelStyle()}>{item.label}</div>
-                        </div>
-                    ))}
-                </div>
-
-                <div style={{ ...cardStyle(), marginBottom: '1.25rem' }}>
-                    <div style={{ marginBottom: '1rem' }}>
-                        <div style={{ fontSize: '15px', fontWeight: 800, color: '#111827' }}>Create category</div>
-                        <div style={{ marginTop: '0.25rem', fontSize: '12px', color: '#6B7280' }}>
-                            Add a category that can later be assigned to one or more ideas.
-                        </div>
-                    </div>
-                    <div style={createGridStyle()}>
-                        <div>
-                            <label style={fieldLabelStyle()}>Category name</label>
-                            <input
-                                value={createName}
-                                onChange={(event) => setCreateName(event.target.value)}
-                                placeholder="Category name"
-                                style={fieldStyle()}
-                            />
-                        </div>
-                        <button
-                            type="button"
-                            onClick={createCategory}
-                            disabled={saving}
-                            style={{ ...primaryButtonStyle(), opacity: saving ? 0.7 : 1, cursor: saving ? 'not-allowed' : 'pointer' }}>
-                            Create category
-                        </button>
-                    </div>
-                </div>
-
-                <div style={cardStyle()}>
-                    <div style={toolbarStyle()}>
-                        <div style={searchWrapStyle()}>
-                            <span style={{ color: '#6B7280', fontSize: '14px' }}>Search</span>
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={(event) => setSearch(event.target.value)}
-                                placeholder="Find by category or linked idea"
-                                style={searchInputStyle()}
-                            />
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#6B7280', fontWeight: 600 }}>
-                            {loading ? 'Loading categories...' : `${filteredCategories.length} visible categor${filteredCategories.length === 1 ? 'y' : 'ies'}`}
-                        </div>
-                    </div>
-
-                    <div style={tableWrapStyle()}>
-                        <table style={tableStyle()}>
-                            <thead>
-                                <tr>
-                                    <th style={thStyle()}>Category</th>
-                                    <th style={thStyle()}>Ideas in category</th>
-                                    <th style={thStyle()}>Usage</th>
-                                    <th style={thStyle()}>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredCategories.map((category) => {
-                                    const ideas = Array.isArray(category.ideas) ? category.ideas : [];
-
-                                    return (
-                                        <tr key={category.categoryId}>
-                                            <td style={tdStyle()}>
-                                                <div style={{ fontWeight: 800 }}>{category.name}</div>
-                                                <div style={{ marginTop: '0.2rem', fontSize: '12px', color: '#6B7280' }}>
-                                                    Category ID: {category.categoryId}
-                                                </div>
-                                            </td>
-                                            <td style={tdStyle()}>
-                                                {ideas.length > 0 ? ideas.map((idea) => (
-                                                    <span key={idea.ideaId} style={tagStyle()}>{idea.title}</span>
-                                                )) : <span style={{ color: '#9CA3AF' }}>No linked ideas</span>}
-                                            </td>
-                                            <td style={tdStyle()}>{ideas.length}</td>
-                                            <td style={tdStyle()}>
-                                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                                    <button type="button" onClick={() => openEdit(category.categoryId)} style={inlineButtonStyle('primary')}>
-                                                        Edit
-                                                    </button>
-                                                    <button type="button" onClick={() => deleteCategory(category)} style={inlineButtonStyle('danger')} disabled={saving}>
-                                                        Delete
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                                {!loading && filteredCategories.length === 0 && (
-                                    <tr>
-                                        <td style={{ ...tdStyle(), textAlign: 'center', color: '#6B7280' }} colSpan={4}>
-                                            No categories match the current search.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </StaffShell>
-    );
+      {/* Table */}
+      <div style={{...card}}>
+        <div style={{display:'flex',gap:'0.75rem',alignItems:'center',marginBottom:'1rem',flexWrap:'wrap'}}>
+          <div style={{position:'relative',flex:1,minWidth:'200px'}}>
+            <span style={{position:'absolute',left:'0.75rem',top:'50%',transform:'translateY(-50%)',color:C.textMuted,fontSize:'13px'}}>🔍</span>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search categories…" style={{...inp,paddingLeft:'2.1rem',background:'#F8FAFC',width:'100%',boxSizing:'border-box'}}/>
+          </div>
+          <span style={{fontSize:'12px',color:C.textMuted,fontWeight:600}}>{filteredCats.length} of {categories.length}</span>
+        </div>
+        <div style={{overflowX:'auto'}}>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:'13.5px'}}>
+            <thead>
+              <tr style={{background:'#F8FAFC'}}>
+                {['Category Name','Idea Count','Actions'].map(h=><th key={h} style={{padding:'10px 14px',textAlign:'left',fontSize:'11px',fontWeight:700,color:C.textMuted,textTransform:'uppercase',letterSpacing:'0.05em',borderBottom:`2px solid ${C.border}`}}>{h}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredCats.map((cat,i)=>{
+                const count=Array.isArray(cat.ideas)?cat.ideas.length:0;
+                return (
+                  <tr key={cat.categoryId} style={{background:i%2===0?'#fff':'#FAFBFF'}}>
+                    <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`}}>
+                      <div style={{fontWeight:600,color:C.text}}>{cat.name}</div>
+                      <div style={{fontSize:'11px',color:C.textMuted}}>ID: {cat.categoryId}</div>
+                    </td>
+                    <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`}}>
+                      <span style={{display:'inline-block',padding:'2px 9px',borderRadius:'999px',fontSize:'11.5px',fontWeight:700,background:count>0?C.primaryLt:'#F1F5F9',color:count>0?C.primaryDk:C.textMuted}}>{count} ideas</span>
+                    </td>
+                    <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`}}>
+                      <div style={{display:'flex',gap:'6px'}}>
+                        <button onClick={()=>window.location.href=`/qa-manager/categories/${cat.categoryId}/edit`} style={{padding:'5px 12px',border:'none',borderRadius:'6px',background:C.infoLt,color:C.infoDk,fontSize:'12px',fontWeight:700,cursor:'pointer',fontFamily:font}}>Edit</button>
+                        {count===0&&<button onClick={()=>deleteCategory(cat)} disabled={saving} style={{padding:'5px 12px',border:'none',borderRadius:'6px',background:C.dangerLt,color:C.dangerDk,fontSize:'12px',fontWeight:700,cursor:'pointer',fontFamily:font}}>Delete</button>}
+                        {count>0&&<span style={{padding:'5px 12px',fontSize:'12px',color:C.textMuted}}>In use</span>}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {!loading&&filteredCats.length===0&&<tr><td colSpan={3} style={{padding:'2rem',textAlign:'center',color:C.textMuted,fontSize:'13px'}}>No categories found.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </StaffShell>
+  );
 }
