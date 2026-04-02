@@ -1,4 +1,4 @@
-import { clearAuthSession } from './authStorage';
+import { clearAuthSession } from '../shared/authStorage';
 
 function shellStyle() {
     return {

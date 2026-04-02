@@ -5,8 +5,8 @@ import {
     BarChart, Bar,
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
-import AdminShell from './AdminShell';
-import { getAuthSession, roleToPath } from './authStorage';
+import AdminShell from '../shells/AdminShell';
+import { getAuthSession, roleToPath } from '../shared/authStorage';
 import {
     fetchOverview,
     fetchRoleDistribution,

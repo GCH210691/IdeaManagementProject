@@ -1,4 +1,4 @@
-import { canCreateIdeas, canViewAcademicYearReports, canViewCategoryList, clearAuthSession, getAuthSession } from './authStorage';
+import { canCreateIdeas, canViewAcademicYearReports, canViewCategoryList, clearAuthSession, getAuthSession } from '../shared/authStorage';
 
 function pageStyle() {
     return {

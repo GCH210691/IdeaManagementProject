@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { canCreateIdeas, canManageIdea, getAuthHeaders, getAuthSession } from './authStorage';
-import StaffShell from './StaffShell';
+import { canCreateIdeas, canManageIdea, getAuthHeaders, getAuthSession } from '../shared/authStorage';
+import StaffShell from '../shells/StaffShell';
 
 function pageHeaderStyle() {
     return {

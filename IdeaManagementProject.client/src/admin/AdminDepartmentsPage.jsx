@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getAuthHeaders, getAuthSession, roleToPath } from './authStorage';
-import AdminShell from './AdminShell';
+import { getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
+import AdminShell from '../shells/AdminShell';
 
 function containerStyle() {
     return {

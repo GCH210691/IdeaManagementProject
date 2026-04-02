@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BASE_URL } from './authStorage';
+import { BASE_URL } from './shared/authStorage';
 
 const ADMINISTRATION_DEPARTMENT_NAME = 'administration';
 const LOCKED_DEPARTMENT_ROLES = new Set(['ADMIN', 'QA_MANAGER']);

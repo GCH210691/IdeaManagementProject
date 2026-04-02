@@ -7,8 +7,8 @@ import {
     getDisplayName,
     isDashboardRole,
     roleToPath,
-} from './authStorage';
-import StaffShell from './StaffShell';
+} from './shared/authStorage';
+import StaffShell from './shells/StaffShell';
 
 function pageHeaderStyle() {
     return {

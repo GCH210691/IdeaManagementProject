@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { canManageIdea, getAuthHeaders, getAuthSession } from './authStorage';
+import { canManageIdea, getAuthHeaders, getAuthSession } from '../shared/authStorage';
 
 function pageStyle() {
     return {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { canViewCategoryList, getAuthHeaders, getAuthSession, roleToPath } from './authStorage';
-import StaffShell from './StaffShell';
+import { canViewCategoryList, getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
+import StaffShell from '../shells/StaffShell';
 
 function containerStyle() {
     return { maxWidth: '1240px', margin: '0 auto' };

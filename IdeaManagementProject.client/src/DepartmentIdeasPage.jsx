@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BASE_URL, getAuthHeaders, getAuthSession, isDashboardRole, roleToPath } from './authStorage';
-import StaffShell from './StaffShell';
+import { BASE_URL, getAuthHeaders, getAuthSession, isDashboardRole, roleToPath } from './shared/authStorage';
+import StaffShell from './shells/StaffShell';
 
 function pageHeaderStyle() {
     return {

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { clearAuthSession, getAuthSession, getDisplayName, roleToPath } from './authStorage';
+import { clearAuthSession, getAuthSession, getDisplayName, roleToPath } from './shared/authStorage';
 
 function pageStyle() {
     return {

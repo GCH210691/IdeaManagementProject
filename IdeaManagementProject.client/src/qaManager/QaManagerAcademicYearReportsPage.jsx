@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { canViewAcademicYearReports, getAuthHeaders, getAuthSession, roleToPath } from './authStorage';
-import StaffShell from './StaffShell';
+import { canViewAcademicYearReports, getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
+import StaffShell from '../shells/StaffShell';
 
 function formatRole(role) {
     return String(role || '')
