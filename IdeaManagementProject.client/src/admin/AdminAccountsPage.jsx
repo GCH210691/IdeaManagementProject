@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
+import { BASE_URL, getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
 import AdminShell from '../shells/AdminShell';
+import { C, card, font } from '../theme';
 
 function toLocalInputValue(v) { if(!v)return''; const d=new Date(v); if(isNaN(d))return''; return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,16); }
 function toIsoOrNull(v) { if(!v)return null; const d=new Date(v); return isNaN(d)?null:d.toISOString(); }
@@ -36,9 +37,9 @@ export default function AdminAccountsPage() {
   async function loadData(showMsg=false) {
     setLoading(true);
     try {
-      const [ur,or] = await Promise.all([
-        fetch('/api/admin/users',{headers:getAuthHeaders({Accept:'application/json'})}),
-        fetch('/api/admin/users/options',{headers:getAuthHeaders({Accept:'application/json'})}),
+        const [ur, or] = await Promise.all([
+        fetch(`${BASE_URL}/api/admin/users`, { headers: getAuthHeaders({ Accept: 'application/json' }) }),
+        fetch(`${BASE_URL}/api/admin/users/options`, { headers: getAuthHeaders({ Accept: 'application/json' }) }),
       ]);
       if (ur.status===401||or.status===401) { window.location.href='/login'; return; }
       if (ur.status===403||or.status===403) { window.location.href='/admin/dashboard'; return; }
@@ -68,8 +69,8 @@ export default function AdminAccountsPage() {
     if (!editingUserId) return;
     if (!form.name.trim()||!form.email.trim()||!form.role||!form.departmentId) { setFeedback({type:'error',text:'Name, email, role, and department are required.'}); return; }
     setSaving(true); setFeedback({type:'info',text:'Saving…'});
-    try {
-      const res = await fetch(`/api/admin/users/${editingUserId}`,{method:'PUT',headers:getAuthHeaders({'Content-Type':'application/json',Accept:'application/json'}),body:JSON.stringify({name:form.name.trim(),email:form.email.trim(),role:form.role,departmentId:Number(form.departmentId),acceptedTermsAt:toIsoOrNull(form.acceptedTermsAt),password:form.password.trim()||null})});
+      try {
+      const res = await fetch(`${BASE_URL}/api/admin/users/${editingUserId}`, { method: 'PUT', headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }), body: JSON.stringify({ name: form.name.trim(), email: form.email.trim(), role: form.role, departmentId: Number(form.departmentId), acceptedTermsAt: toIsoOrNull(form.acceptedTermsAt), password: form.password.trim() || null }) });
       if (res.status===401){window.location.href='/login';return;} if(res.status===403){window.location.href='/admin/dashboard';return;}
       const payload=await res.json().catch(()=>null);
       if (!res.ok){setFeedback({type:'error',text:payload?.message||`Save failed: ${res.status}`});return;}

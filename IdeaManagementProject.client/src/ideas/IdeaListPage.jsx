@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { canCreateIdeas, canManageIdea, getAuthHeaders, getAuthSession } from '../shared/authStorage';
+import { BASE_URL, canCreateIdeas, canManageIdea, getAuthHeaders, getAuthSession } from '../shared/authStorage';
 import StaffShell from '../shells/StaffShell';
 
 function pageHeaderStyle() { return { marginBottom:'1rem', display:'flex', alignItems:'center', justifyContent:'space-between', gap:'1rem', flexWrap:'wrap' }; }
@@ -33,7 +33,7 @@ export default function IdeaListPage() {
         let active = true;
         async function loadIdeas() {
             try {
-                const res = await fetch('/api/ideas', { headers: getAuthHeaders({ Accept: 'application/json' }) });
+                const res = await fetch(`${BASE_URL}/api/ideas`, { headers: getAuthHeaders({ Accept: 'application/json' }) });
                 if (res.status === 401) { window.location.href = '/login'; return; }
                 if (!res.ok) { setMessage('Unable to load ideas: ' + res.status); return; }
                 const data = await res.json();
@@ -62,7 +62,7 @@ export default function IdeaListPage() {
 
     async function downloadCsvExport() {
         try {
-            const res = await fetch('/api/ideas/export/csv', { headers: getAuthHeaders({ Accept: 'text/csv' }) });
+            const res = await fetch(`${BASE_URL}/api/ideas/export/csv`, { headers: getAuthHeaders({ Accept: 'text/csv' }) });
             if (res.status === 401) { window.location.href = '/login'; return; }
             if (res.status === 403) { setMessage('Only QA managers can download the CSV export.'); return; }
             if (!res.ok) { setMessage('Export failed: ' + res.status); return; }
@@ -80,7 +80,7 @@ export default function IdeaListPage() {
         if (!window.confirm('Delete idea "' + idea.title + '"?')) return;
         setDeletingId(idea.ideaId); setMessage('');
         try {
-            const res = await fetch('/api/ideas/' + idea.ideaId, { method:'DELETE', headers: getAuthHeaders({ Accept: 'application/json' }) });
+            const res = await fetch(`${BASE_URL}/api/ideas/` + idea.ideaId, { method: 'DELETE', headers: getAuthHeaders({ Accept: 'application/json' }) });
             if (res.status === 401) { window.location.href = '/login'; return; }
             if (res.status === 403) { setMessage('You can only delete your own ideas.'); return; }
             if (!res.ok) { setMessage('Delete failed: ' + res.status); return; }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { canViewCategoryList, getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
+import { BASE_URL, canViewCategoryList, getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
 import StaffShell from '../shells/StaffShell';
+import { C, card, font } from '../theme';
 
 const inp = {width:'100%',boxSizing:'border-box',padding:'0.55rem 0.75rem',borderRadius:'7px',border:`1.5px solid ${C.border}`,fontSize:'13px',color:C.text,fontFamily:font,outline:'none'};
 
@@ -16,8 +17,8 @@ export default function CategoryListPage() {
 
   async function loadCategories(showMsg=false) {
     setLoading(true);
-    try {
-      const res=await fetch('/api/qa-manager/categories',{headers:getAuthHeaders({Accept:'application/json'})});
+      try {
+      const res = await fetch(`${BASE_URL}/api/qa-manager/categories`, { headers: getAuthHeaders({ Accept: 'application/json' }) });
       if(res.status===401){window.location.href='/login';return;}
       if(res.status===403){window.location.href=roleToPath(user?.role);return;}
       if(!res.ok){setFeedback({type:'error',text:`Load failed: ${res.status}`});return;}
@@ -46,8 +47,8 @@ export default function CategoryListPage() {
   async function createCategory() {
     if(!createName.trim()){setFeedback({type:'error',text:'Category name is required.'});return;}
     setSaving(true);setFeedback({type:'info',text:'Creating…'});
-    try {
-      const res=await fetch('/api/qa-manager/categories',{method:'POST',headers:getAuthHeaders({'Content-Type':'application/json',Accept:'application/json'}),body:JSON.stringify({name:createName.trim()})});
+      try {
+      const res = await fetch(`${BASE_URL}/api/qa-manager/categories`, { method: 'POST', headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }), body: JSON.stringify({ name: createName.trim() }) });
       if(res.status===401){window.location.href='/login';return;}
       if(res.status===403){window.location.href=roleToPath(user?.role);return;}
       const p=await res.json().catch(()=>null);
@@ -60,8 +61,8 @@ export default function CategoryListPage() {
   async function deleteCategory(cat) {
     if(!window.confirm(`Delete "${cat.name}"?`))return;
     setSaving(true);setFeedback({type:'info',text:'Deleting…'});
-    try {
-      const res=await fetch(`/api/qa-manager/categories/${cat.categoryId}`,{method:'DELETE',headers:getAuthHeaders({Accept:'application/json'})});
+      try {
+      const res = await fetch(`${BASE_URL}/api/qa-manager/categories/${cat.categoryId}`, { method: 'DELETE', headers: getAuthHeaders({ Accept: 'application/json' }) });
       if(res.status===401){window.location.href='/login';return;}
       if(res.status===403){window.location.href=roleToPath(user?.role);return;}
       if(res.status===409){const p=await res.json().catch(()=>null);setFeedback({type:'error',text:p?.message||'Category is in use.'});return;}

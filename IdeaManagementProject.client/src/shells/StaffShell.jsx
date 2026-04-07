@@ -1,4 +1,5 @@
-import { canCreateIdeas, canViewAcademicYearReports, canViewCategoryList, clearAuthSession, getAuthSession } from './authStorage';
+import { canCreateIdeas, canViewAcademicYearReports, canViewCategoryList, clearAuthSession, getAuthSession } from '../shared/authStorage';
+import { C, font } from '../theme';
 
 function toRoleLabel(role) {
   return String(role||'').toLowerCase().split('_').map(p=>p.charAt(0).toUpperCase()+p.slice(1)).join(' ');

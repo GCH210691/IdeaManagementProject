@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getAuthHeaders, getAuthSession, roleToPath } from './authStorage';
-import AdminShell from './AdminShell';
+import { BASE_URL, getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
+import AdminShell from '../shells/AdminShell';
+import { C, card, font } from '../theme';
 
 function fmtDT(v) { return v ? new Date(v).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'; }
 function toLocal(v) { if(!v)return''; const d=new Date(v); return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,16); }
@@ -29,8 +30,8 @@ export default function AdminClosureManagementPage() {
 
   async function loadData(msg='') {
     setLoading(true);
-    try {
-      const [ar,cr]=await Promise.all([fetch('/api/admin/academic-years',{headers:getAuthHeaders({Accept:'application/json'})}),fetch('/api/admin/closure-periods',{headers:getAuthHeaders({Accept:'application/json'})})]);
+      try {
+      const [ar, cr] = await Promise.all([fetch(`${BASE_URL}/api/admin/academic-years`, { headers: getAuthHeaders({ Accept: 'application/json' }) }), fetch(`${BASE_URL}/api/admin/closure-periods`, { headers: getAuthHeaders({ Accept: 'application/json' }) })]);
       if(ar.status===401||cr.status===401){window.location.href='/login';return;}
       if(ar.status===403||cr.status===403){window.location.href='/admin/dashboard';return;}
       if(!ar.ok||!cr.ok){setMessage(`Load failed`);return;}
@@ -46,8 +47,8 @@ export default function AdminClosureManagementPage() {
   async function createAcademicYear() {
     if(!newAcademicYearName.trim()){setMessage('Academic year name is required.');return;}
     setSaving(true);setMessage('Creating…');
-    try {
-      const res=await fetch('/api/admin/academic-years',{method:'POST',headers:getAuthHeaders({'Content-Type':'application/json',Accept:'application/json'}),body:JSON.stringify({yearName:newAcademicYearName.trim()})});
+      try {
+      const res = await fetch(`${BASE_URL}/api/admin/academic-years`, { method: 'POST', headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }), body: JSON.stringify({ yearName: newAcademicYearName.trim() }) });
       if(res.status===401){window.location.href='/login';return;}
       const p=await res.json().catch(()=>null);
       if(!res.ok){setMessage(p?.message||`Create failed: ${res.status}`);return;}
@@ -59,8 +60,8 @@ export default function AdminClosureManagementPage() {
   async function saveAcademicYear(id) {
     if(!editingAYName.trim()){setMessage('Name is required.');return;}
     setSaving(true);setMessage('Saving…');
-    try {
-      const res=await fetch(`/api/admin/academic-years/${id}`,{method:'PUT',headers:getAuthHeaders({'Content-Type':'application/json',Accept:'application/json'}),body:JSON.stringify({yearName:editingAYName.trim()})});
+      try {
+      const res = await fetch(`${BASE_URL}/api/admin/academic-years/${id}`, { method: 'PUT', headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }), body: JSON.stringify({ yearName: editingAYName.trim() }) });
       if(res.status===401){window.location.href='/login';return;}
       const p=await res.json().catch(()=>null);
       if(!res.ok){setMessage(p?.message||`Save failed: ${res.status}`);return;}
@@ -72,8 +73,8 @@ export default function AdminClosureManagementPage() {
   async function deleteAcademicYear(ay) {
     if(!window.confirm(`Delete "${ay.yearName}"?`))return;
     setSaving(true);setMessage('Deleting…');
-    try {
-      const res=await fetch(`/api/admin/academic-years/${ay.academicYearId}`,{method:'DELETE',headers:getAuthHeaders({Accept:'application/json'})});
+      try {
+      const res = await fetch(`${BASE_URL}/api/admin/academic-years/${ay.academicYearId}`, { method: 'DELETE', headers: getAuthHeaders({ Accept: 'application/json' }) });
       if(res.status===401){window.location.href='/login';return;}
       const p=await res.json().catch(()=>null);
       if(!res.ok){setMessage(p?.message||`Delete failed: ${res.status}`);return;}
@@ -85,8 +86,8 @@ export default function AdminClosureManagementPage() {
   async function createClosurePeriod() {
     if(!newCP.academicYearId||!newCP.title.trim()||!newCP.ideaStartAt||!newCP.ideaEndAt||!newCP.commentEndAt){setMessage('All closure period fields are required.');return;}
     setSaving(true);setMessage('Creating…');
-    try {
-      const res=await fetch('/api/admin/closure-periods',{method:'POST',headers:getAuthHeaders({'Content-Type':'application/json',Accept:'application/json'}),body:JSON.stringify({academicYearId:Number(newCP.academicYearId),title:newCP.title.trim(),ideaStartAt:newCP.ideaStartAt,ideaEndAt:newCP.ideaEndAt,commentEndAt:newCP.commentEndAt})});
+      try {
+      const res = await fetch(`${BASE_URL}/api/admin/closure-periods`, { method: 'POST', headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }), body: JSON.stringify({ academicYearId: Number(newCP.academicYearId), title: newCP.title.trim(), ideaStartAt: newCP.ideaStartAt, ideaEndAt: newCP.ideaEndAt, commentEndAt: newCP.commentEndAt }) });
       if(res.status===401){window.location.href='/login';return;}
       const p=await res.json().catch(()=>null);
       if(!res.ok){setMessage(p?.message||`Create failed: ${res.status}`);return;}
@@ -98,8 +99,8 @@ export default function AdminClosureManagementPage() {
   async function saveClosurePeriod(id) {
     if(!editingCP.academicYearId||!editingCP.title.trim()||!editingCP.ideaStartAt||!editingCP.ideaEndAt||!editingCP.commentEndAt){setMessage('All fields are required.');return;}
     setSaving(true);setMessage('Saving…');
-    try {
-      const res=await fetch(`/api/admin/closure-periods/${id}`,{method:'PUT',headers:getAuthHeaders({'Content-Type':'application/json',Accept:'application/json'}),body:JSON.stringify({academicYearId:Number(editingCP.academicYearId),title:editingCP.title.trim(),ideaStartAt:editingCP.ideaStartAt,ideaEndAt:editingCP.ideaEndAt,commentEndAt:editingCP.commentEndAt})});
+      try {
+      const res = await fetch(`${BASE_URL}/api/admin/closure-periods/${id}`, { method: 'PUT', headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }), body: JSON.stringify({ academicYearId: Number(editingCP.academicYearId), title: editingCP.title.trim(), ideaStartAt: editingCP.ideaStartAt, ideaEndAt: editingCP.ideaEndAt, commentEndAt: editingCP.commentEndAt }) });
       if(res.status===401){window.location.href='/login';return;}
       const p=await res.json().catch(()=>null);
       if(!res.ok){setMessage(p?.message||`Save failed: ${res.status}`);return;}
@@ -111,8 +112,8 @@ export default function AdminClosureManagementPage() {
   async function deleteClosurePeriod(cp) {
     if(!window.confirm(`Delete "${cp.title}"?`))return;
     setSaving(true);setMessage('Deleting…');
-    try {
-      const res=await fetch(`/api/admin/closure-periods/${cp.closurePeriodId}`,{method:'DELETE',headers:getAuthHeaders({Accept:'application/json'})});
+      try {
+      const res = await fetch(`${BASE_URL}/api/admin/closure-periods/${cp.closurePeriodId}`, { method: 'DELETE', headers: getAuthHeaders({ Accept: 'application/json' }) });
       if(res.status===401){window.location.href='/login';return;}
       const p=await res.json().catch(()=>null);
       if(!res.ok){setMessage(p?.message||`Delete failed: ${res.status}`);return;}

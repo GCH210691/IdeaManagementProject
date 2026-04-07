@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { canManageIdea, getAuthHeaders, getAuthSession } from '../shared/authStorage';
+import { BASE_URL, canManageIdea, getAuthHeaders, getAuthSession } from '../shared/authStorage';
+import { card } from '../theme';
 
 function getIdeaIdFromPath() {
     const match = window.location.pathname.match(/^\/ideas\/(\d+)$/i);
@@ -54,7 +55,7 @@ export default function IdeaDetailsPage() {
         let active = true;
         async function load() {
             try {
-                const res = await fetch('/api/ideas/' + ideaId, { headers: getAuthHeaders({ Accept: 'application/json' }) });
+                const res = await fetch(`${BASE_URL}/api/ideas/` + ideaId, { headers: getAuthHeaders({ Accept: 'application/json' }) });
                 if (res.status === 401) { window.location.href = '/login'; return; }
                 if (res.status === 404) { setMessage('Idea not found.'); return; }
                 if (!res.ok) { setMessage('Unable to load idea: ' + res.status); return; }
@@ -73,7 +74,7 @@ export default function IdeaDetailsPage() {
         if (!commentText.trim()) { setCommentMsg('Comment cannot be empty.'); return; }
         setSendingComment(true); setCommentMsg('');
         try {
-            const res = await fetch('/api/ideas/' + ideaId + '/comments', {
+            const res = await fetch(`${BASE_URL}/api/ideas/` + ideaId + '/comments', {
                 method: 'POST',
                 headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
                 body: JSON.stringify({ content: commentText.trim() }),
@@ -91,7 +92,7 @@ export default function IdeaDetailsPage() {
     async function submitVote(value) {
         setSendingVote(true); setVoteMsg('');
         try {
-            const res = await fetch('/api/ideas/' + ideaId + '/vote', {
+            const res = await fetch(`${BASE_URL}/api/ideas/` + ideaId + '/vote', {
                 method: 'PUT',
                 headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
                 body: JSON.stringify({ value }),
@@ -106,7 +107,7 @@ export default function IdeaDetailsPage() {
 
     async function downloadAttachment(attachmentId, originalName) {
         try {
-            const res = await fetch('/api/ideas/attachments/' + attachmentId + '/download', { headers: getAuthHeaders() });
+            const res = await fetch(`${BASE_URL}/api/ideas/attachments/` + attachmentId + '/download', { headers: getAuthHeaders() });
             if (res.status === 401) { window.location.href = '/login'; return; }
             if (!res.ok) { setMessage('Download failed: ' + res.status); return; }
             const blob = await res.blob();

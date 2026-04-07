@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { canViewCategoryList, getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
+import { BASE_URL, canViewCategoryList, getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
 import StaffShell from '../shells/StaffShell';
+import { C, card, font } from '../theme';
 
 export default function CategoryEditPage() {
   const session = useMemo(()=>getAuthSession(),[]);
@@ -17,8 +18,8 @@ export default function CategoryEditPage() {
     if(!categoryId){setFeedback({type:'error',text:'Invalid category ID.'});return;}
     let active=true;
     async function load() {
-      try {
-        const res=await fetch(`/api/qa-manager/categories/${categoryId}`,{headers:getAuthHeaders({Accept:'application/json'})});
+        try {
+        const res = await fetch(`${BASE_URL}/api/qa-manager/categories/${categoryId}`, { headers: getAuthHeaders({ Accept: 'application/json' }) });
         if(res.status===401){window.location.href='/login';return;}
         if(res.status===403){window.location.href=roleToPath(user.role);return;}
         if(res.status===404){setFeedback({type:'error',text:'Category not found.'});return;}
@@ -35,8 +36,8 @@ export default function CategoryEditPage() {
   async function saveCategory() {
     if(!name.trim()){setFeedback({type:'error',text:'Category name is required.'});return;}
     setSaving(true);setFeedback({type:'info',text:'Saving…'});
-    try {
-      const res=await fetch(`/api/qa-manager/categories/${categoryId}`,{method:'PUT',headers:getAuthHeaders({'Content-Type':'application/json',Accept:'application/json'}),body:JSON.stringify({name:name.trim()})});
+      try {
+      const res = await fetch(`${BASE_URL}/api/qa-manager/categories/${categoryId}`, { method: 'PUT', headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }), body: JSON.stringify({ name: name.trim() }) });
       if(res.status===401){window.location.href='/login';return;}
       if(res.status===403){window.location.href=roleToPath(user?.role);return;}
       const p=await res.json().catch(()=>null);

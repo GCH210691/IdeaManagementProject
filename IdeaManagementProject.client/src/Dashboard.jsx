@@ -9,6 +9,7 @@ import {
     roleToPath,
 } from './shared/authStorage';
 import StaffShell from './shells/StaffShell';
+import { C, card, font } from './theme';
 
 function toRelativeTime(v) {
   if (!v) return '';

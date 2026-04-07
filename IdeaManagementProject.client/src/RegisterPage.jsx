@@ -6,7 +6,7 @@ const ADMIN_DEPT = 'administration';
 
 function toRoleLabel(r) { return String(r||'').toLowerCase().split('_').map(p=>p.charAt(0).toUpperCase()+p.slice(1)).join(' '); }
 
-const inp = {width:'100%',boxSizing:'border-box',padding:'0.65rem 0.85rem',background:'rgba(255,255,255,0.06)',border:'1.5px solid rgba(255,255,255,0.1)',borderRadius:'9px',color:'#F1F5F9',fontSize:'14px',fontFamily:font,outline:'none'};
+const inp = {width:'100%',boxSizing:'border-box',padding:'0.65rem 0.85rem',background:'rgba(255,255,255,0.06)',border:'1.5px solid rgba(255,255,255,0.1)',borderRadius:'9px',color:'#F1F5F9',fontSize:'14px',fontFamily:"'DM Sans', 'Segoe UI', system-ui, sans-serif",outline:'none'};
 const sel = {...inp,cursor:'pointer'};
 
 function Field({label,children}) {
@@ -71,7 +71,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div style={{minHeight:'100vh',display:'flex',fontFamily:font,background:'#060E1E',position:'relative',overflow:'hidden'}}>
+    <div style={{minHeight:'100vh',display:'flex',fontFamily:"'DM Sans', 'Segoe UI', system-ui, sans-serif",background:'#060E1E',position:'relative',overflow:'hidden'}}>
       <div style={{position:'absolute',top:'-80px',right:'-60px',width:'500px',height:'500px',borderRadius:'50%',background:'radial-gradient(circle,rgba(99,102,241,0.2) 0%,transparent 70%)',pointerEvents:'none'}}/>
       <div style={{position:'absolute',bottom:'-60px',left:'-80px',width:'400px',height:'400px',borderRadius:'50%',background:'radial-gradient(circle,rgba(6,182,212,0.1) 0%,transparent 70%)',pointerEvents:'none'}}/>
       <div style={{position:'absolute',inset:0,backgroundImage:'linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px)',backgroundSize:'52px 52px',pointerEvents:'none'}}/>
@@ -135,7 +135,7 @@ export default function RegisterPage() {
                 <span style={{color:'rgba(255,255,255,0.45)',fontSize:'12.5px',lineHeight:1.5}}>I accept the terms and conditions of the platform</span>
               </div>
 
-              <button type="submit" disabled={loading} style={{width:'100%',padding:'0.75rem',borderRadius:'10px',border:'none',background:loading?'rgba(99,102,241,0.4)':'linear-gradient(135deg,#4F46E5,#818CF8)',color:'#fff',fontWeight:700,fontSize:'14px',cursor:loading?'not-allowed':'pointer',fontFamily:font,boxShadow:loading?'none':'0 4px 16px rgba(99,102,241,0.4)'}}>
+              <button type="submit" disabled={loading} style={{width:'100%',padding:'0.75rem',borderRadius:'10px',border:'none',background:loading?'rgba(99,102,241,0.4)':'linear-gradient(135deg,#4F46E5,#818CF8)',color:'#fff',fontWeight:700,fontSize:'14px',cursor:loading?'not-allowed':'pointer',fontFamily:"'DM Sans', 'Segoe UI', system-ui, sans-serif",boxShadow:loading?'none':'0 4px 16px rgba(99,102,241,0.4)'}}>
                 {loading?'Creating account…':'Create Account →'}
               </button>
             </form>
@@ -143,7 +143,7 @@ export default function RegisterPage() {
 
           <p style={{textAlign:'center',marginTop:'1.1rem',marginBottom:0}}>
             <span style={{color:'rgba(255,255,255,0.3)',fontSize:'13px'}}>Already have an account? </span>
-            <button onClick={()=>window.location.href='/'} style={{background:'none',border:'none',color:'#818CF8',fontWeight:700,fontSize:'13px',cursor:'pointer',fontFamily:font,padding:0}}>Sign in</button>
+            <button onClick={()=>window.location.href='/'} style={{background:'none',border:'none',color:'#818CF8',fontWeight:700,fontSize:'13px',cursor:'pointer',fontFamily:"'DM Sans', 'Segoe UI', system-ui, sans-serif",padding:0}}>Sign in</button>
           </p>
 
           {message&&<div style={{marginTop:'1rem',padding:'0.7rem 1rem',borderRadius:'8px',fontSize:'13px',background:isErr?'rgba(239,68,68,0.1)':'rgba(16,185,129,0.1)',border:`1px solid ${isErr?'rgba(239,68,68,0.25)':'rgba(16,185,129,0.25)'}`,color:isErr?'#FCA5A5':'#6EE7B7'}}>{isErr?'⚠ ':' '}{message}</div>}

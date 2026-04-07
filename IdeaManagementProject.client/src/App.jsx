@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { roleToPath, setAuthSession, BASE_URL } from './shared/authStorage';
+import { font } from './theme';
 
 function Input({ label, type='text', value, onChange, placeholder, autoComplete }) {
   const [focused, setFocused] = useState(false);
@@ -112,5 +113,3 @@ export default function App() {
     </div>
   );
 }
-
-export default App;

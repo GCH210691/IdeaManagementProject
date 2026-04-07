@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { canCreateIdeas, getAuthHeaders, getAuthSession } from '../shared/authStorage';
+import { canCreateIdeas, getAuthHeaders, getAuthSession, BASE_URL } from '../shared/authStorage';
 import StaffShell from '../shells/StaffShell';
+import { C, card, font } from '../theme';
 
 function toSelectedIds(opts) { return Array.from(opts).filter(o=>o.selected).map(o=>Number(o.value)); }
 function fmtDT(v) { return v?new Date(v).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):''; }
@@ -34,8 +35,8 @@ export default function CreateIdeaPage() {
     if(!canCreateIdeas(user)){window.location.href='/ideas';return;}
     let active=true;
     async function load() {
-      try {
-        const [cr,sr]=await Promise.all([fetch('/api/categories',{headers:getAuthHeaders({Accept:'application/json'})}),fetch('/api/ideas/submission-window',{headers:getAuthHeaders({Accept:'application/json'})})]);
+        try {
+        const [cr, sr] = await Promise.all([fetch(`${BASE_URL}/api/categories`, { headers: getAuthHeaders({ Accept: 'application/json' }) }), fetch(`${BASE_URL}/api/ideas/submission-window`, { headers: getAuthHeaders({ Accept: 'application/json' }) })]);
         if(cr.status===401||sr.status===401){window.location.href='/login';return;}
         if(!active)return;
         setCategories(cr.ok?await cr.json().then(d=>Array.isArray(d)?d:[]):[]);
@@ -58,8 +59,8 @@ export default function CreateIdeaPage() {
       const fd=new FormData();
       fd.append('title',title.trim());fd.append('content',content.trim());fd.append('isAnonymous',isAnonymous);
       selectedCategoryIds.forEach(id=>fd.append('categoryIds',id));
-      files.forEach(f=>fd.append('files',f));
-      const res=await fetch('/api/ideas',{method:'POST',headers:getAuthHeaders(),body:fd});
+      files.forEach(f => fd.append('files', f));
+      const res = await fetch(`${BASE_URL}/api/ideas`, { method: 'POST', headers: getAuthHeaders(), body: fd });
       if(res.status===401){window.location.href='/login';return;}
       const payload=await res.json().catch(()=>null);
       if(res.status===409){setSubmissionWindow(p=>p?{...p,state:'closed'}:p);setMessage(payload?.message||'Submission window closed.');return;}

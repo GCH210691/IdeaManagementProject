@@ -1,6 +1,6 @@
 export const AUTH_STORAGE_KEY = 'uims_auth_session';
 const envBaseUrl = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_API_BASE_URL : '';
-export const BASE_URL = (envBaseUrl || '').replace(/\/+$/, '');
+export const BASE_URL = 'http://localhost:5111'; // (envBaseUrl || '').replace(/\/+$/, '');
 
 export function setAuthSession(token, user) {
     const payload = { token, user };

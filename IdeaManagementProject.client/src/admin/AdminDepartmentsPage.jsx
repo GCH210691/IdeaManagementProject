@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
+import { BASE_URL, getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
 import AdminShell from '../shells/AdminShell';
+import { C, card, font } from '../theme';
 
 const inp = { width:'100%',boxSizing:'border-box',padding:'0.55rem 0.75rem',borderRadius:'7px',border:`1.5px solid ${C.border}`,fontSize:'13px',color:C.text,fontFamily:font,outline:'none' };
 
@@ -20,8 +21,8 @@ export default function AdminDepartmentsPage() {
 
   async function loadData(showMsg=false) {
     setLoading(true);
-    try {
-      const [dr,ur]=await Promise.all([fetch('/api/admin/departments',{headers:getAuthHeaders({Accept:'application/json'})}),fetch('/api/admin/users',{headers:getAuthHeaders({Accept:'application/json'})})]);
+      try {
+      const [dr, ur] = await Promise.all([fetch(`${BASE_URL}/api/admin/departments`, { headers: getAuthHeaders({ Accept: 'application/json' }) }), fetch(`${BASE_URL}/api/admin/users`, { headers: getAuthHeaders({ Accept: 'application/json' }) })]);
       if(dr.status===401||ur.status===401){window.location.href='/login';return;}
       if(dr.status===403||ur.status===403){window.location.href='/admin/dashboard';return;}
       if(!dr.ok||!ur.ok){setFeedback({type:'error',text:`Load failed: ${dr.status}`});return;}
@@ -46,8 +47,8 @@ export default function AdminDepartmentsPage() {
   async function createDepartment() {
     if(!createName.trim()){setFeedback({type:'error',text:'Department name is required.'});return;}
     setSaving(true);setFeedback({type:'info',text:'Creating…'});
-    try {
-      const res=await fetch('/api/admin/departments',{method:'POST',headers:getAuthHeaders({'Content-Type':'application/json',Accept:'application/json'}),body:JSON.stringify({name:createName.trim(),qaCoordinatorUserIds:createQaUserIds.map(v=>Number(v))})});
+      try {
+      const res = await fetch(`${BASE_URL}/api/admin/departments`, { method: 'POST', headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }), body: JSON.stringify({ name: createName.trim(), qaCoordinatorUserIds: createQaUserIds.map(v => Number(v)) }) });
       if(res.status===401){window.location.href='/login';return;} if(res.status===403){window.location.href='/admin/dashboard';return;}
       const payload=await res.json().catch(()=>null);
       if(!res.ok){setFeedback({type:'error',text:payload?.message||`Create failed: ${res.status}`});return;}
@@ -61,7 +62,7 @@ export default function AdminDepartmentsPage() {
     if(!form.name.trim()){setFeedback({type:'error',text:'Department name is required.'});return;}
     setSaving(true);setFeedback({type:'info',text:'Saving…'});
     try {
-      const res=await fetch(`/api/admin/departments/${editingDepartmentId}`,{method:'PUT',headers:getAuthHeaders({'Content-Type':'application/json',Accept:'application/json'}),body:JSON.stringify({name:form.name.trim(),qaCoordinatorUserIds:form.qaCoordinatorUserIds.map(v=>Number(v))})});
+      const res=await fetch(`${BASE_URL}/api/admin/departments/${editingDepartmentId}`,{method:'PUT',headers:getAuthHeaders({'Content-Type':'application/json',Accept:'application/json'}),body:JSON.stringify({name:form.name.trim(),qaCoordinatorUserIds:form.qaCoordinatorUserIds.map(v=>Number(v))})});
       if(res.status===401){window.location.href='/login';return;} if(res.status===403){window.location.href='/admin/dashboard';return;}
       const payload=await res.json().catch(()=>null);
       if(!res.ok){setFeedback({type:'error',text:payload?.message||`Save failed: ${res.status}`});return;}
@@ -73,8 +74,8 @@ export default function AdminDepartmentsPage() {
   async function deleteDepartment(dept) {
     if(!window.confirm(`Delete department "${dept.name}"?`))return;
     setSaving(true);setFeedback({type:'info',text:'Deleting…'});
-    try {
-      const res=await fetch(`/api/admin/departments/${dept.departmentId}`,{method:'DELETE',headers:getAuthHeaders({Accept:'application/json'})});
+      try {
+      const res = await fetch(`${BASE_URL}/api/admin/departments/${dept.departmentId}`, { method: 'DELETE', headers: getAuthHeaders({ Accept: 'application/json' }) });
       if(res.status===401){window.location.href='/login';return;} if(res.status===403){window.location.href='/admin/dashboard';return;}
       if(res.status===409){const p=await res.json().catch(()=>null);setFeedback({type:'error',text:p?.message||'Department is in use.'});return;}
       if(!res.ok){const p=await res.json().catch(()=>null);setFeedback({type:'error',text:p?.message||`Delete failed: ${res.status}`});return;}

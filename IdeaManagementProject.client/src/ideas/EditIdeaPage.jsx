@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { canCreateIdeas, canManageIdea, getAuthHeaders, getAuthSession } from '../shared/authStorage';
+import { BASE_URL, canCreateIdeas, canManageIdea, getAuthHeaders, getAuthSession } from '../shared/authStorage';
 import StaffShell from '../shells/StaffShell';
+import { C, card, font } from '../theme';
 
 function getIdeaIdFromPath() { const m=window.location.pathname.match(/^\/ideas\/(\d+)\/edit$/i); return m?Number(m[1]):0; }
 function toSelectedIds(opts) { return Array.from(opts).filter(o=>o.selected).map(o=>Number(o.value)); }
@@ -27,8 +28,8 @@ export default function EditIdeaPage() {
     if(!ideaId){return;}
     let active=true;
     async function load() {
-      try {
-        const [ir,cr]=await Promise.all([fetch(`/api/ideas/${ideaId}`,{headers:getAuthHeaders({Accept:'application/json'})}),fetch('/api/categories',{headers:getAuthHeaders({Accept:'application/json'})})]);
+        try {
+        const [ir, cr] = await Promise.all([fetch(`${BASE_URL}/api/ideas/${ideaId}`, { headers: getAuthHeaders({ Accept: 'application/json' }) }), fetch(`${BASE_URL}/api/categories`, { headers: getAuthHeaders({ Accept: 'application/json' }) })]);
         if(ir.status===401||cr.status===401){window.location.href='/login';return;}
         if(ir.status===404){setMessage('Idea not found.');return;}
         if(!ir.ok||!cr.ok){setMessage(`Load failed: ${ir.status}`);return;}
@@ -48,8 +49,8 @@ export default function EditIdeaPage() {
     e.preventDefault();
     if(!title.trim()||!content.trim()){setMessage('Title and content are required.');return;}
     setSubmitting(true);setMessage('');
-    try {
-      const res=await fetch(`/api/ideas/${ideaId}`,{method:'PUT',headers:getAuthHeaders({'Content-Type':'application/json',Accept:'application/json'}),body:JSON.stringify({title:title.trim(),content:content.trim(),isAnonymous,categoryIds:selectedCategoryIds})});
+      try {
+      const res = await fetch(`${BASE_URL}/api/ideas/${ideaId}`, { method: 'PUT', headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }), body: JSON.stringify({ title: title.trim(), content: content.trim(), isAnonymous, categoryIds: selectedCategoryIds }) });
       if(res.status===401){window.location.href='/login';return;}
       const payload=await res.json().catch(()=>null);
       if(!res.ok){setMessage(payload?.message||`Failed: ${res.status}`);return;}

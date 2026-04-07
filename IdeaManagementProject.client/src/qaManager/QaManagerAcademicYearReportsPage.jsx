@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { canViewAcademicYearReports, getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
+import { BASE_URL, canViewAcademicYearReports, getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
 import StaffShell from '../shells/StaffShell';
+import { C, card, font } from '../theme';
 
 function formatRole(r) { return String(r||'').toLowerCase().split('_').filter(Boolean).map(p=>p.charAt(0).toUpperCase()+p.slice(1)).join(' '); }
 function fmtDT(v) { return v?new Date(v).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):''; }
@@ -19,8 +20,8 @@ export default function QaManagerAcademicYearReportsPage() {
   const [loading,setLoading]=useState(true);
 
   async function loadAcademicYears(preferred='') {
-    try {
-      const res=await fetch('/api/qa-manager/academic-year-reports/academic-years',{headers:getAuthHeaders({Accept:'application/json'})});
+      try {
+      const res = await fetch(`${BASE_URL}/api/qa-manager/academic-year-reports/academic-years`, { headers: getAuthHeaders({ Accept: 'application/json' }) });
       if(res.status===401){window.location.href='/login';return;}
       if(res.status===403){window.location.href=roleToPath(user?.role);return;}
       if(!res.ok){setMessage(`Load failed: ${res.status}`);return;}
@@ -38,8 +39,8 @@ export default function QaManagerAcademicYearReportsPage() {
   async function loadReport(id,showMsg=true) {
     if(!id){setReport(null);setMessage('Select an academic year.');return;}
     setLoading(true);
-    try {
-      const res=await fetch(`/api/qa-manager/academic-year-reports/${id}`,{headers:getAuthHeaders({Accept:'application/json'})});
+      try {
+      const res = await fetch(`${BASE_URL}/api/qa-manager/academic-year-reports/${id}`, { headers: getAuthHeaders({ Accept: 'application/json' }) });
       if(res.status===401){window.location.href='/login';return;}
       if(res.status===403){window.location.href=roleToPath(user?.role);return;}
       if(res.status===404){setReport(null);setMessage('Academic year not found.');return;}

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
+import { BASE_URL, getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
 import StaffShell from '../shells/StaffShell';
+import { C, card, font } from '../theme';
 
 export default function QaCoordinatorDepartmentManagementPage() {
   const session = useMemo(()=>getAuthSession(),[]);
@@ -15,8 +16,8 @@ export default function QaCoordinatorDepartmentManagementPage() {
 
   async function loadData(msg='') {
     setLoading(true);
-    try {
-      const res=await fetch('/api/qa-coordinator/department-management',{headers:getAuthHeaders({Accept:'application/json'})});
+      try {
+      const res = await fetch(`${BASE_URL}/api/qa-coordinator/department-management`, { headers: getAuthHeaders({ Accept: 'application/json' }) });
       if(res.status===401){window.location.href='/login';return;}
       if(res.status===403){window.location.href=roleToPath(user?.role);return;}
       if(!res.ok){setMessage(`Load failed: ${res.status}`);return;}
@@ -38,8 +39,8 @@ export default function QaCoordinatorDepartmentManagementPage() {
   async function assign(staff) {
     if(!departmentId){setMessage('Your department is not available.');return;}
     setSavingUserId(staff.id);setMessage('');
-    try {
-      const res=await fetch(`/api/qa-coordinator/department-management/staff/${staff.id}/department`,{method:'PUT',headers:getAuthHeaders({'Content-Type':'application/json',Accept:'application/json'}),body:JSON.stringify({departmentId})});
+      try {
+      const res = await fetch(`${BASE_URL}/api/qa-coordinator/department-management/staff/${staff.id}/department`, { method: 'PUT', headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }), body: JSON.stringify({ departmentId }) });
       if(res.status===401){window.location.href='/login';return;}
       if(!res.ok){const p=await res.json().catch(()=>null);setMessage(p?.message||`Failed: ${res.status}`);return;}
       await loadData(`${staff.name} assigned to ${departmentName}.`);
@@ -49,8 +50,8 @@ export default function QaCoordinatorDepartmentManagementPage() {
 
   async function unassign(staff) {
     setSavingUserId(staff.id);setMessage('');
-    try {
-      const res=await fetch(`/api/qa-coordinator/department-management/staff/${staff.id}/department`,{method:'PUT',headers:getAuthHeaders({'Content-Type':'application/json',Accept:'application/json'}),body:JSON.stringify({departmentId:null})});
+      try {
+      const res = await fetch(`${BASE_URL}/api/qa-coordinator/department-management/staff/${staff.id}/department`, { method: 'PUT', headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }), body: JSON.stringify({ departmentId: null }) });
       if(res.status===401){window.location.href='/login';return;}
       if(!res.ok){const p=await res.json().catch(()=>null);setMessage(p?.message||`Failed: ${res.status}`);return;}
       await loadData(`${staff.name} removed from ${departmentName}.`);

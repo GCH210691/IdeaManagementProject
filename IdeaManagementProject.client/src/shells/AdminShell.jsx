@@ -1,4 +1,5 @@
 import { clearAuthSession } from '../shared/authStorage';
+import { C, font } from '../theme';
 
 const MENU = [
   { id:'overview',        icon:'◈', label:'Overview',        path:'/admin/dashboard' },

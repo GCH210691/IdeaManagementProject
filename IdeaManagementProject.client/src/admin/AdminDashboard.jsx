@@ -7,6 +7,7 @@ import {
 } from 'recharts';
 import AdminShell from '../shells/AdminShell';
 import { getAuthSession, roleToPath } from '../shared/authStorage';
+import { C, card, font } from '../theme';
 import {
     fetchOverview,
     fetchRoleDistribution,
