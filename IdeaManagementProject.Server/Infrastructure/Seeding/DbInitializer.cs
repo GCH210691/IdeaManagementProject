@@ -124,6 +124,12 @@ public static class DbInitializer
                 MigrationId = "20260329094353_AddAcademicYearsAndClosurePeriods",
                 RequiredTables = new[] { "AcademicYear", "ClosurePeriod" },
                 RequiredColumns = new[] { ("Idea", "closure_period_id") }
+            },
+            new
+            {
+                MigrationId = "20260330212519_AddCoordinatorNotificationsTable",
+                RequiredTables = new[] { "Notification" },
+                RequiredColumns = Array.Empty<(string TableName, string ColumnName)>()
             }
         };
 

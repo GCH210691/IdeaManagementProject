@@ -128,6 +128,7 @@ public class IdeaService : IIdeaService
         var user = await _dbContext.Users
             .AsNoTracking()
             .Include(x => x.Department)
+            .Include(x => x.Role)
             .FirstOrDefaultAsync(x => x.UserId == input.UserId, cancellationToken);
 
         if (user is null)
@@ -187,6 +188,29 @@ public class IdeaService : IIdeaService
                 Idea = idea,
                 Category = category,
             });
+        }
+
+        if (string.Equals(user.Role.RoleName, "STAFF", StringComparison.OrdinalIgnoreCase))
+        {
+            var coordinatorIds = await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => x.DepartmentId == user.DepartmentId && x.Role.RoleName == "QA_COORDINATOR")
+                .Select(x => x.UserId)
+                .ToListAsync(cancellationToken);
+
+            foreach (var coordinatorId in coordinatorIds)
+            {
+                _dbContext.Notifications.Add(new Notification
+                {
+                    RecipientUserId = coordinatorId,
+                    IdeaId = idea.IdeaId,
+                    StaffName = user.Name,
+                    IdeaTitle = idea.Title,
+                    DepartmentName = user.Department.Name,
+                    Message = $"{user.Name} created the idea \"{idea.Title}\".",
+                    CreatedAt = DateTime.UtcNow,
+                });
+            }
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getAuthHeaders, getAuthSession, roleToPath } from './authStorage';
-import AdminShell from './AdminShell';
-import { C, card, font, badge } from './theme';
+import { getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
+import AdminShell from '../shells/AdminShell';
 
 function toLocalInputValue(v) { if(!v)return''; const d=new Date(v); if(isNaN(d))return''; return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,16); }
 function toIsoOrNull(v) { if(!v)return null; const d=new Date(v); return isNaN(d)?null:d.toISOString(); }

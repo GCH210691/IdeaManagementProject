@@ -15,4 +15,5 @@ public class User
     public ICollection<Idea> Ideas { get; set; } = new List<Idea>();
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     public ICollection<Vote> Votes { get; set; } = new List<Vote>();
+    public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 }

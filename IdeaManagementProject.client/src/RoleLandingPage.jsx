@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
-import { clearAuthSession, getAuthSession, getDisplayName, roleToPath } from './authStorage';
-import { font, C } from './theme';
+import { clearAuthSession, getAuthSession, getDisplayName, roleToPath } from './shared/authStorage';
 
 export default function RoleLandingPage({ expectedRole, roleText }) {
   const session = getAuthSession();

@@ -3,22 +3,22 @@ import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import RegisterPage from './RegisterPage.jsx';
 import Dashboard from './Dashboard.jsx';
-import IdeaListPage from './IdeaListPage.jsx';
-import CreateIdeaPage from './CreateIdeaPage.jsx';
-import IdeaDetailsPage from './IdeaDetailsPage.jsx';
-import EditIdeaPage from './EditIdeaPage.jsx';
+import IdeaListPage from './ideas/IdeaListPage.jsx';
+import CreateIdeaPage from './ideas/CreateIdeaPage.jsx';
+import IdeaDetailsPage from './ideas/IdeaDetailsPage.jsx';
+import EditIdeaPage from './ideas/EditIdeaPage.jsx';
 import RoleLandingPage from './RoleLandingPage.jsx';
-import AdminDashboard from './AdminDashboard.jsx';
-import AdminAccountsPage from './AdminAccountsPage.jsx';
-import AdminDepartmentsPage from './AdminDepartmentsPage.jsx';
-import AdminClosureManagementPage from './AdminClosureManagementPage.jsx';
-import AdminIdeaManagementPage from './AdminIdeaManagementPage.jsx';
-import MyIdeasPage from './MyIdeasPage.jsx';
+import AdminDashboard from './admin/AdminDashboard.jsx';
+import AdminAccountsPage from './admin/AdminAccountsPage.jsx';
+import AdminDepartmentsPage from './admin/AdminDepartmentsPage.jsx';
+import AdminClosureManagementPage from './admin/AdminClosureManagementPage.jsx';
+import MyIdeasPage from './ideas/MyIdeasPage.jsx';
 import DepartmentIdeasPage from './DepartmentIdeasPage.jsx';
-import CategoryListPage from './CategoryListPage.jsx';
-import CategoryEditPage from './CategoryEditPage.jsx';
-import QaCoordinatorDepartmentManagementPage from './QaCoordinatorDepartmentManagementPage.jsx';
-import QaManagerAcademicYearReportsPage from './QaManagerAcademicYearReportsPage.jsx';
+import CategoryListPage from './qaManager/CategoryListPage.jsx';
+import CategoryEditPage from './qaManager/CategoryEditPage.jsx';
+import QaCoordinatorDepartmentManagementPage from './qaCoordinator/QaCoordinatorDepartmentManagementPage.jsx';
+import QaCoordinatorNotificationsPage from './qaCoordinator/QaCoordinatorNotificationsPage.jsx';
+import QaManagerAcademicYearReportsPage from './qaManager/QaManagerAcademicYearReportsPage.jsx';
 
 const path = window.location.pathname.toLowerCase();
 
@@ -46,6 +46,8 @@ if (path === '/register') {
     Root = DepartmentIdeasPage;
 } else if (path === '/qa-coordinator/department-management') {
     Root = QaCoordinatorDepartmentManagementPage;
+} else if (path === '/qa-coordinator/notifications') {
+    Root = QaCoordinatorNotificationsPage;
 } else if (path === '/qa-manager/academic-year-reports') {
     Root = QaManagerAcademicYearReportsPage;
 } else if (path === '/qa-manager/categories') {

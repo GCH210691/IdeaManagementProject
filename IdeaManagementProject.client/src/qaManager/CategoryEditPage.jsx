@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { canViewCategoryList, getAuthHeaders, getAuthSession, roleToPath } from './authStorage';
-import StaffShell from './StaffShell';
-import { C, card, font } from './theme';
+import { canViewCategoryList, getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
+import StaffShell from '../shells/StaffShell';
 
 export default function CategoryEditPage() {
   const session = useMemo(()=>getAuthSession(),[]);

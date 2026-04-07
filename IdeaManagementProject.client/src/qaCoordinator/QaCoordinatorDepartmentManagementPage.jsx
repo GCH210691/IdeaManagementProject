@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getAuthHeaders, getAuthSession, roleToPath } from './authStorage';
-import StaffShell from './StaffShell';
-import { C, card, font } from './theme';
+import { getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
+import StaffShell from '../shells/StaffShell';
 
 export default function QaCoordinatorDepartmentManagementPage() {
   const session = useMemo(()=>getAuthSession(),[]);

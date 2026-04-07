@@ -1,5 +1,4 @@
 import { canCreateIdeas, canViewAcademicYearReports, canViewCategoryList, clearAuthSession, getAuthSession } from './authStorage';
-import { C, font } from './theme';
 
 function toRoleLabel(role) {
   return String(role||'').toLowerCase().split('_').map(p=>p.charAt(0).toUpperCase()+p.slice(1)).join(' ');
@@ -32,16 +31,23 @@ export default function StaffShell({ activeMenu, footerText, children }) {
   const accent = roleAccent(user?.role);
   const initials = (user?.name||'U').slice(0,2).toUpperCase();
 
-  const menuItems = [
-    { id:'dashboard', icon:'⊞', label:'Dashboard',  path:'/dashboard' },
-    { id:'ideas',     icon:'💡', label:'View Ideas',  path:'/ideas' },
-    ...(canCreateIdeas(user)?[{id:'create',icon:'✏️',label:'Create Idea',path:'/ideas/create'}]:[]),
-    ...(canCreateIdeas(user)?[{id:'myideas',icon:'📌',label:'My Ideas',path:'/staff/my-ideas'}]:[]),
-    { id:'departments', icon:'🏢', label:'Department', path:'/staff/departments' },
-    ...(user?.role==='QA_COORDINATOR'?[{id:'department-management',icon:'⚙️',label:'Dept. Management',path:'/qa-coordinator/department-management'}]:[]),
-    ...(canViewAcademicYearReports(user)?[{id:'academic-year-reports',icon:'📊',label:'Year Reports',path:'/qa-manager/academic-year-reports'}]:[]),
-    ...(canViewCategoryList(user)?[{id:'categories',icon:'🏷️',label:'Categories',path:'/qa-manager/categories'}]:[]),
-  ];
+    const menuItems = [
+        { id: 'dashboard', icon: 'DB', label: 'Dashboard', path: '/dashboard' },
+        { id: 'ideas', icon: 'VI', label: 'View ideas', path: '/ideas' },
+        ...(canCreateIdeas(user) ? [{ id: 'create', icon: 'CI', label: 'Create idea', path: '/ideas/create' }] : []),
+        ...(canCreateIdeas(user) ? [{ id: 'myideas', icon: 'MY', label: 'My ideas', path: '/staff/my-ideas' }] : []),
+        { id: 'departments', icon: 'DP', label: 'Departments', path: '/staff/departments' },
+        ...(user?.role === 'QA_COORDINATOR'
+            ? [
+                { id: 'notifications', icon: 'NT', label: 'Notifications', path: '/qa-coordinator/notifications' },
+                { id: 'department-management', icon: 'DM', label: 'Department management', path: '/qa-coordinator/department-management' }
+            ]
+            : []),
+        ...(canViewAcademicYearReports(user)
+            ? [{ id: 'academic-year-reports', icon: 'AR', label: 'Academic year reports', path: '/qa-manager/academic-year-reports' }]
+            : []),
+        ...(canViewCategoryList(user) ? [{ id: 'categories', icon: 'CL', label: 'Category list', path: '/qa-manager/categories' }] : []),
+    ];
 
   return (
     <div style={{display:'flex',minHeight:'100vh',fontFamily:font,background:'#F8FAFC'}}>

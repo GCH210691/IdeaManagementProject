@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getAuthHeaders, getAuthSession, roleToPath } from './authStorage';
-import AdminShell from './AdminShell';
-import { C, card, font } from './theme';
+import { getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
+import AdminShell from '../shells/AdminShell';
 
 const inp = { width:'100%',boxSizing:'border-box',padding:'0.55rem 0.75rem',borderRadius:'7px',border:`1.5px solid ${C.border}`,fontSize:'13px',color:C.text,fontFamily:font,outline:'none' };
 

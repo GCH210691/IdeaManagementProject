@@ -1,9 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
-import { PieChart, Pie, Cell, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import AdminShell from './AdminShell';
-import { getAuthSession, roleToPath } from './authStorage';
-import { fetchOverview, fetchRoleDistribution, fetchIdeasByCategory, fetchPostFrequency } from './analyticsApi';
-import { C, card, font, badge } from './theme';
+import {
+    PieChart, Pie, Cell,
+    LineChart, Line,
+    BarChart, Bar,
+    XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+} from 'recharts';
+import AdminShell from '../shells/AdminShell';
+import { getAuthSession, roleToPath } from '../shared/authStorage';
+import {
+    fetchOverview,
+    fetchRoleDistribution,
+    fetchIdeasByCategory,
+    fetchPostFrequency,
+} from './analyticsApi';
 
 const CHART_COLORS = ['#6366F1','#06B6D4','#10B981','#F59E0B','#EF4444','#8B5CF6'];
 
@@ -143,13 +152,17 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        <div style={{...card, display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
-          <div style={{fontSize:'40px',marginBottom:'0.75rem',opacity:0.4}}>📡</div>
-          <h2 style={{margin:'0 0 0.4rem',fontSize:'13.5px',fontWeight:700,color:C.text}}>Users Online Today</h2>
-          <p style={{margin:0,fontSize:'12px',color:C.textMuted}}>Real-time API not available yet</p>
-          <div style={{marginTop:'1rem',padding:'0.6rem 1rem',borderRadius:'8px',border:'1px dashed #CBD5E1',color:C.textMuted,fontSize:'12px'}}>Coming soon</div>
-        </div>
-      </div>
-    </AdminShell>
-  );
+                {/* Placeholder: Users online (no API yet) */}
+                <div style={chartCardStyle()}>
+                    <h2 style={chartTitleStyle()}>Users online today</h2>
+                    <div style={{
+                        height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: '#9CA3AF', fontSize: '13px', border: '1px dashed #E5E7EB', borderRadius: '8px',
+                    }}>
+                        No API available yet
+                    </div>
+                </div>
+            </div>
+        </AdminShell>
+    );
 }

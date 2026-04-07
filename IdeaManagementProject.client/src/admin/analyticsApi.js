@@ -1,7 +1,7 @@
 // src/analyticsApi.js
 // Service layer for Admin Analytics API
 
-import { BASE_URL, getAuthHeaders } from './authStorage';
+import { BASE_URL, getAuthHeaders } from '../shared/authStorage';
 
 const ANALYTICS_BASE_URL = `${BASE_URL}/api/admin/analytics`;
 

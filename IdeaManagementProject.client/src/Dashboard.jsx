@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BASE_URL, canManageIdea, getAuthHeaders, getAuthSession, getDisplayName, isDashboardRole, roleToPath } from './authStorage';
-import StaffShell from './StaffShell';
-import { C, card, font, badge } from './theme';
+import {
+    BASE_URL,
+    canManageIdea,
+    getAuthHeaders,
+    getAuthSession,
+    getDisplayName,
+    isDashboardRole,
+    roleToPath,
+} from './shared/authStorage';
+import StaffShell from './shells/StaffShell';
 
 function toRelativeTime(v) {
   if (!v) return '';

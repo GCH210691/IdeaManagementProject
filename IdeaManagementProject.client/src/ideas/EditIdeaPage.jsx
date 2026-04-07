@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { canCreateIdeas, canManageIdea, getAuthHeaders, getAuthSession } from './authStorage';
-import StaffShell from './StaffShell';
-import { C, card, font } from './theme';
+import { canCreateIdeas, canManageIdea, getAuthHeaders, getAuthSession } from '../shared/authStorage';
+import StaffShell from '../shells/StaffShell';
 
 function getIdeaIdFromPath() { const m=window.location.pathname.match(/^\/ideas\/(\d+)\/edit$/i); return m?Number(m[1]):0; }
 function toSelectedIds(opts) { return Array.from(opts).filter(o=>o.selected).map(o=>Number(o.value)); }

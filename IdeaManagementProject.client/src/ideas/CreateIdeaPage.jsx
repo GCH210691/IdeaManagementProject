@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { canCreateIdeas, getAuthHeaders, getAuthSession } from './authStorage';
-import StaffShell from './StaffShell';
-import { C, card, font } from './theme';
+import { canCreateIdeas, getAuthHeaders, getAuthSession } from '../shared/authStorage';
+import StaffShell from '../shells/StaffShell';
 
 function toSelectedIds(opts) { return Array.from(opts).filter(o=>o.selected).map(o=>Number(o.value)); }
 function fmtDT(v) { return v?new Date(v).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):''; }

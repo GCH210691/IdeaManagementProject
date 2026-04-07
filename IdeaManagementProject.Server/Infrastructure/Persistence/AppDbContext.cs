@@ -21,6 +21,7 @@ public class AppDbContext : DbContext
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<Vote> Votes => Set<Vote>();
     public DbSet<Attachment> Attachments => Set<Attachment>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -316,6 +317,59 @@ public class AppDbContext : DbContext
                 .WithMany(x => x.Attachments)
                 .HasForeignKey(x => x.IdeaId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.ToTable("Notification");
+
+            entity.HasKey(x => x.NotificationId);
+            entity.Property(x => x.NotificationId).HasColumnName("notification_id");
+
+            entity.Property(x => x.RecipientUserId)
+                .HasColumnName("recipient_user_id")
+                .IsRequired();
+
+            entity.Property(x => x.IdeaId)
+                .HasColumnName("idea_id");
+
+            entity.Property(x => x.StaffName)
+                .HasColumnName("staff_name")
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(x => x.IdeaTitle)
+                .HasColumnName("idea_title")
+                .HasMaxLength(250)
+                .IsRequired();
+
+            entity.Property(x => x.DepartmentName)
+                .HasColumnName("department_name")
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(x => x.Message)
+                .HasColumnName("message")
+                .HasMaxLength(500)
+                .IsRequired();
+
+            entity.Property(x => x.CreatedAt)
+                .HasColumnName("created_at")
+                .IsRequired();
+
+            entity.HasOne(x => x.RecipientUser)
+                .WithMany(x => x.Notifications)
+                .HasForeignKey(x => x.RecipientUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.Idea)
+                .WithMany(x => x.Notifications)
+                .HasForeignKey(x => x.IdeaId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(x => x.RecipientUserId);
+            entity.HasIndex(x => x.IdeaId);
+            entity.HasIndex(x => x.CreatedAt);
         });
 
         modelBuilder.Entity<Category>(entity =>

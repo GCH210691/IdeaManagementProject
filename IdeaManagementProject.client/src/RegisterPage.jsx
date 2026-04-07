@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BASE_URL } from './authStorage';
-import { font } from './theme';
+import { BASE_URL } from './shared/authStorage';
 
 const ADMIN_LOCKED = new Set(['ADMIN','QA_MANAGER']);
 const ADMIN_DEPT = 'administration';

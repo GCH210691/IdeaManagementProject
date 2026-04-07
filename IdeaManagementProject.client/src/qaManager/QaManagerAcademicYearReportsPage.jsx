@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { canViewAcademicYearReports, getAuthHeaders, getAuthSession, roleToPath } from './authStorage';
-import StaffShell from './StaffShell';
-import { C, card, font } from './theme';
+import { canViewAcademicYearReports, getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
+import StaffShell from '../shells/StaffShell';
 
 function formatRole(r) { return String(r||'').toLowerCase().split('_').filter(Boolean).map(p=>p.charAt(0).toUpperCase()+p.slice(1)).join(' '); }
 function fmtDT(v) { return v?new Date(v).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):''; }

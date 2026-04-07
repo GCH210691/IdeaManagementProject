@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BASE_URL, getAuthHeaders, getAuthSession, isDashboardRole, roleToPath } from './authStorage';
-import StaffShell from './StaffShell';
+import { BASE_URL, getAuthHeaders, getAuthSession, isDashboardRole, roleToPath } from './shared/authStorage';
+import StaffShell from './shells/StaffShell';
 
 function pageHeaderStyle() { return { marginBottom:'1rem', display:'flex', alignItems:'center', justifyContent:'space-between', gap:'1rem', flexWrap:'wrap' }; }
 function h1Style() { return { margin:'0 0 0.25rem 0', fontSize:'1.5rem', fontWeight:900, color:'#111827' }; }
