@@ -10,6 +10,13 @@ obj/
 *.user
 *.suo
 *.cache
+*.publishSettings
+*.pubxml.user
+
+# Visual Studio publish profiles
+**/Properties/PublishProfiles/*.pubxml.user
+**/Properties/PublishProfiles/*.publishSettings
+**/Properties/*.publishSettings
 
 .dotnet/
 .tmp-category-build/
