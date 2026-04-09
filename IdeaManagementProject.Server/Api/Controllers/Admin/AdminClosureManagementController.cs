@@ -227,6 +227,28 @@ public class AdminClosureManagementController : ControllerBase
         return Ok(updated);
     }
 
+    [HttpPatch("ideas/{ideaId:int}/comment-end-at")]
+    public async Task<IActionResult> UpdateIdeaCommentEndAt(int ideaId, [FromBody] UpdateIdeaCommentEndAtRequest? request, CancellationToken cancellationToken)
+    {
+        if (request?.CommentEndAt is null)
+            return BadRequest(new { message = "CommentEndAt is required." });
+
+        var idea = await _dbContext.Ideas
+            .Include(x => x.ClosurePeriod)
+            .FirstOrDefaultAsync(x => x.IdeaId == ideaId, cancellationToken);
+
+        if (idea is null)
+            return NotFound(new { message = "Idea not found." });
+
+        if (idea.ClosurePeriod is null)
+            return UnprocessableEntity(new { message = "This idea has no associated closure period." });
+
+        idea.ClosurePeriod.CommentEndAt = request.CommentEndAt.Value.ToUniversalTime();
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return Ok(new { ideaId, commentEndAt = idea.ClosurePeriod.CommentEndAt });
+    }
+
     [HttpDelete("closure-periods/{closurePeriodId:int}")]
     public async Task<IActionResult> DeleteClosurePeriod(int closurePeriodId, CancellationToken cancellationToken)
     {

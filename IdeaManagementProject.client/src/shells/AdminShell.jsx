@@ -1,4 +1,5 @@
-import { clearAuthSession } from '../shared/authStorage';
+import { useMemo } from 'react';
+import { clearAuthSession, getAuthSession } from '../shared/authStorage';
 import { C, font } from '../theme';
 
 const MENU = [

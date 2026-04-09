@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BASE_URL, canManageIdea, getAuthHeaders, getAuthSession } from '../shared/authStorage';
 import { card } from '../theme';
+import StaffShell from '../shells/StaffShell';
 
 function getIdeaIdFromPath() {
     const match = window.location.pathname.match(/^\/ideas\/(\d+)$/i);

@@ -23,3 +23,5 @@ public sealed record SaveAdminClosurePeriodRequest(
     DateTime? IdeaStartAt,
     DateTime? IdeaEndAt,
     DateTime? CommentEndAt);
+
+public sealed record UpdateIdeaCommentEndAtRequest(DateTime? CommentEndAt);

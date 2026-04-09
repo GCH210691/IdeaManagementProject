@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import AdminShell from './AdminShell';
+import AdminShell from './shells/AdminShell';
 import { BASE_URL, getAuthHeaders, getAuthSession, roleToPath } from './shared/authStorage';
-import { card } from 'theme';
+import { card } from './theme';
 
 /* ─── Style helpers ────────────────────────────────────────────────── */
 const s = {
@@ -67,18 +67,31 @@ function ClosureDateModal({ idea, onClose, onSaved }) {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
 
-    // NOTE: The backend doesn't have a dedicated endpoint to update commentEndAt on an existing idea.
-    // This is a placeholder UI — in production, the backend would need a new endpoint.
-    // For now we just show the current value and display a notice.
     async function handleSave() {
         if (!commentEndAt) { setError('Please select a date.'); return; }
         setSaving(true);
         setError('');
-        // Simulate save
-        await new Promise(r => setTimeout(r, 600));
-        setSaving(false);
-        onSaved && onSaved({ ...idea, commentEndAt: new Date(commentEndAt).toISOString() });
-        onClose();
+        try {
+            const endpoint = BASE_URL
+                ? `${BASE_URL}/api/admin/ideas/${idea.ideaId}/comment-end-at`
+                : `/api/admin/ideas/${idea.ideaId}/comment-end-at`;
+            const res = await fetch(endpoint, {
+                method: 'PATCH',
+                headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
+                body: JSON.stringify({ commentEndAt: new Date(commentEndAt).toISOString() }),
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => null);
+                setError(data?.message || `Save failed (${res.status})`);
+                return;
+            }
+            onSaved && onSaved({ ...idea, commentEndAt: new Date(commentEndAt).toISOString() });
+            onClose();
+        } catch (e) {
+            setError(e instanceof Error ? e.message : String(e));
+        } finally {
+            setSaving(false);
+        }
     }
 
     return (
@@ -88,6 +101,9 @@ function ClosureDateModal({ idea, onClose, onSaved }) {
                 <p style={s.modalSub}>
                     Idea: <strong>{idea?.title}</strong>
                 </p>
+                <div style={{ marginBottom: '0.75rem', padding: '0.6rem 0.75rem', background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '8px', fontSize: '12px', color: '#1E40AF' }}>
+                    ℹ This updates the comment closure date for all ideas in the same closure period.
+                </div>
                 <label style={s.label}>Comment closes at</label>
                 <input
                     type="datetime-local"
@@ -96,9 +112,6 @@ function ClosureDateModal({ idea, onClose, onSaved }) {
                     onChange={e => setCommentEndAt(e.target.value)}
                 />
                 {error && <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', color: '#DC2626' }}>{error}</p>}
-                <div style={{ marginTop: '0.75rem', padding: '0.65rem', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '8px', fontSize: '12px', color: '#92400E' }}>
-                    ⚠ Backend endpoint for updating closure date is pending. This is a UI placeholder.
-                </div>
                 <div style={s.modalBtns}>
                     <button style={s.cancelBtn} onClick={onClose}>Cancel</button>
                     <button style={s.primaryBtn} onClick={handleSave} disabled={saving}>

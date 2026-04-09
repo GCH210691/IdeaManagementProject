@@ -8,6 +8,7 @@ function toRoleLabel(r) { return String(r||'').toLowerCase().split('_').map(p=>p
 
 const inp = {width:'100%',boxSizing:'border-box',padding:'0.65rem 0.85rem',background:'rgba(255,255,255,0.06)',border:'1.5px solid rgba(255,255,255,0.1)',borderRadius:'9px',color:'#F1F5F9',fontSize:'14px',fontFamily:"'DM Sans', 'Segoe UI', system-ui, sans-serif",outline:'none'};
 const sel = {...inp,cursor:'pointer'};
+const opt = {background:'#1E293B',color:'#F1F5F9'};
 
 function Field({label,children}) {
   return (
@@ -112,16 +113,16 @@ export default function RegisterPage() {
                 <div>
                   <Field label="Role">
                     <select value={form.role} onChange={e=>handleRoleChange(e.target.value)} disabled={loading} style={sel}>
-                      <option value="">Select role</option>
-                      {roles.map(r=><option key={r.roleName} value={r.roleName}>{toRoleLabel(r.roleName)}</option>)}
+                      <option value="" style={opt}>Select role</option>
+                      {roles.map(r=><option key={r.roleName} value={r.roleName} style={opt}>{toRoleLabel(r.roleName)}</option>)}
                     </select>
                   </Field>
                 </div>
                 <div>
                   <Field label="Department">
                     <select value={form.departmentId} onChange={e=>setForm(p=>({...p,departmentId:e.target.value}))} disabled={loading||deptLocked} style={{...sel,opacity:deptLocked?0.6:1}}>
-                      <option value="">Select dept.</option>
-                      {availableDepts.map(d=><option key={d.departmentId} value={d.departmentId}>{d.name}</option>)}
+                      <option value="" style={opt}>Select dept.</option>
+                      {availableDepts.map(d=><option key={d.departmentId} value={d.departmentId} style={opt}>{d.name}</option>)}
                     </select>
                   </Field>
                 </div>

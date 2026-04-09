@@ -154,8 +154,8 @@ export default function AdminDashboard() {
         </div>
 
                 {/* Placeholder: Users online (no API yet) */}
-                <div style={chartCardStyle()}>
-                    <h2 style={chartTitleStyle()}>Users online today</h2>
+                <div style={{...card}}>
+                    <h2 style={{margin:'0 0 1.1rem',fontSize:'13.5px',fontWeight:700,color:C.text}}>Users online today</h2>
                     <div style={{
                         height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center',
                         color: '#9CA3AF', fontSize: '13px', border: '1px dashed #E5E7EB', borderRadius: '8px',
