@@ -83,8 +83,17 @@ export default function AdminClosureManagementPage() {
     finally{setSaving(false);}
   }
 
+  function validateCP(cp) {
+    if(!cp.academicYearId||!cp.title.trim()||!cp.ideaStartAt||!cp.ideaEndAt||!cp.commentEndAt) return 'All closure period fields are required.';
+    const start=new Date(cp.ideaStartAt), end=new Date(cp.ideaEndAt), comment=new Date(cp.commentEndAt);
+    if(isNaN(start.getTime())||isNaN(end.getTime())||isNaN(comment.getTime())) return 'Invalid date values.';
+    if(end<=start) return 'Idea end date must be after start date.';
+    if(comment<end) return 'Comment end date must be on or after idea end date.';
+    return null;
+  }
+
   async function createClosurePeriod() {
-    if(!newCP.academicYearId||!newCP.title.trim()||!newCP.ideaStartAt||!newCP.ideaEndAt||!newCP.commentEndAt){setMessage('All closure period fields are required.');return;}
+    const err=validateCP(newCP); if(err){setMessage(err);return;}
     setSaving(true);setMessage('Creating…');
       try {
       const res = await fetch(`${BASE_URL}/api/admin/closure-periods`, { method: 'POST', headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }), body: JSON.stringify({ academicYearId: Number(newCP.academicYearId), title: newCP.title.trim(), ideaStartAt: newCP.ideaStartAt, ideaEndAt: newCP.ideaEndAt, commentEndAt: newCP.commentEndAt }) });
@@ -97,7 +106,7 @@ export default function AdminClosureManagementPage() {
   }
 
   async function saveClosurePeriod(id) {
-    if(!editingCP.academicYearId||!editingCP.title.trim()||!editingCP.ideaStartAt||!editingCP.ideaEndAt||!editingCP.commentEndAt){setMessage('All fields are required.');return;}
+    const err=validateCP(editingCP); if(err){setMessage(err);return;}
     setSaving(true);setMessage('Saving…');
       try {
       const res = await fetch(`${BASE_URL}/api/admin/closure-periods/${id}`, { method: 'PUT', headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }), body: JSON.stringify({ academicYearId: Number(editingCP.academicYearId), title: editingCP.title.trim(), ideaStartAt: editingCP.ideaStartAt, ideaEndAt: editingCP.ideaEndAt, commentEndAt: editingCP.commentEndAt }) });

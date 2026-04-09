@@ -26,7 +26,21 @@ export default function IdeaListPage() {
     const [message, setMessage] = useState('Loading ideas...');
     const [deletingId, setDeletingId] = useState(0);
     const [search, setSearch] = useState('');
-    const [sortBy, setSortBy] = useState('newest');
+    const [sortField, setSortField] = useState('createdAt');
+    const [sortDir, setSortDir] = useState('desc');
+    const [page, setPage] = useState(1);
+    const PAGE_SIZE = 10;
+
+    function handleSort(field) {
+        setPage(1);
+        if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+        else { setSortField(field); setSortDir('asc'); }
+    }
+
+    function SortIcon({ field }) {
+        if (sortField !== field) return <span style={{ color: '#D1D5DB', marginLeft: '4px' }}>↕</span>;
+        return <span style={{ color: '#2563EB', marginLeft: '4px' }}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
+    }
 
     useEffect(() => {
         if (!session?.token || !user) { window.location.href = '/login'; return; }
@@ -49,16 +63,29 @@ export default function IdeaListPage() {
     const allowCreate = useMemo(() => canCreateIdeas(user), [user]);
 
     const filtered = useMemo(() => {
+        setPage(1);
         let list = [...ideas];
         const q = search.trim().toLowerCase();
         if (q) list = list.filter(i => i.title?.toLowerCase().includes(q) || i.authorName?.toLowerCase().includes(q) || i.departmentName?.toLowerCase().includes(q));
-        if (sortBy === 'newest') list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        else if (sortBy === 'oldest') list.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-        else if (sortBy === 'views') list.sort((a, b) => (b.viewCount||0) - (a.viewCount||0));
-        else if (sortBy === 'upvotes') list.sort((a, b) => (b.upvoteCount||0) - (a.upvoteCount||0));
-        else if (sortBy === 'title') list.sort((a, b) => (a.title||'').localeCompare(b.title||''));
+        const dir = sortDir === 'asc' ? 1 : -1;
+        list.sort((a, b) => {
+            switch (sortField) {
+                case 'title':       return dir * (a.title||'').localeCompare(b.title||'');
+                case 'authorName':  return dir * (a.authorName||'').localeCompare(b.authorName||'');
+                case 'department':  return dir * (a.departmentName||'').localeCompare(b.departmentName||'');
+                case 'viewCount':   return dir * ((a.viewCount||0) - (b.viewCount||0));
+                case 'upvoteCount': return dir * ((a.upvoteCount||0) - (b.upvoteCount||0));
+                case 'downvoteCount': return dir * ((a.downvoteCount||0) - (b.downvoteCount||0));
+                case 'commentCount': return dir * ((Array.isArray(a.comments)?a.comments.length:0) - (Array.isArray(b.comments)?b.comments.length:0));
+                case 'createdAt':
+                default:            return dir * (new Date(a.createdAt) - new Date(b.createdAt));
+            }
+        });
         return list;
-    }, [ideas, search, sortBy]);
+    }, [ideas, search, sortField, sortDir]);
+
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     async function downloadCsvExport() {
         try {
@@ -120,15 +147,8 @@ export default function IdeaListPage() {
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                     />
-                    <select style={selectStyle()} value={sortBy} onChange={e => setSortBy(e.target.value)}>
-                        <option value="newest">Newest first</option>
-                        <option value="oldest">Oldest first</option>
-                        <option value="views">Most viewed</option>
-                        <option value="upvotes">Most upvoted</option>
-                        <option value="title">Title A–Z</option>
-                    </select>
                     <span style={{ fontSize:'12px', color:'#6B7280', marginLeft:'auto' }}>
-                        {filtered.length} of {ideas.length} ideas
+                        {filtered.length} of {ideas.length} ideas · Page {page}/{totalPages}
                     </span>
                 </div>
 
@@ -138,22 +158,37 @@ export default function IdeaListPage() {
                     <div style={{ overflowX:'auto' }}>
                         <table style={{ width:'100%', borderCollapse:'collapse', minWidth:'1000px', fontSize:'13px' }}>
                             <thead>
-                                <tr>
-                                    <th style={thStyle()}>Title</th>
-                                    <th style={thStyle()}>Author</th>
-                                    <th style={thStyle()}>Department</th>
-                                    <th style={thStyle()}>Categories</th>
-                                    <th style={thStyle()}>Anon</th>
-                                    <th style={thStyle()}>Views</th>
-                                    <th style={thStyle()}>👍</th>
-                                    <th style={thStyle()}>👎</th>
-                                    <th style={thStyle()}>💬</th>
-                                    <th style={thStyle()}>Created</th>
-                                    <th style={thStyle()}>Actions</th>
+                                <tr style={{ background: '#F8FAFC' }}>
+                                    {[
+                                        { label: 'Title',      field: 'title' },
+                                        { label: 'Author',     field: 'authorName' },
+                                        { label: 'Department', field: 'department' },
+                                        { label: 'Categories', field: null },
+                                        { label: 'Anon',       field: null },
+                                        { label: 'Views',      field: 'viewCount' },
+                                        { label: '👍',         field: 'upvoteCount' },
+                                        { label: '👎',         field: 'downvoteCount' },
+                                        { label: '💬',         field: 'commentCount' },
+                                        { label: 'Created',    field: 'createdAt' },
+                                    ].map(({ label, field }) => (
+                                        <th key={label}
+                                            onClick={field ? () => handleSort(field) : undefined}
+                                            style={{
+                                                ...thStyle(),
+                                                cursor: field ? 'pointer' : 'default',
+                                                userSelect: 'none',
+                                                background: field && sortField === field ? '#EEF2FF' : 'transparent',
+                                                color: field && sortField === field ? '#3730A3' : undefined,
+                                                whiteSpace: 'nowrap',
+                                            }}>
+                                            {label}{field && <SortIcon field={field} />}
+                                        </th>
+                                    ))}
+                                    <th style={{ ...thStyle(), cursor: 'default' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {filtered.map(idea => {
+                                {paginated.map(idea => {
                                     const allowManage = canManageIdea(user, idea);
                                     const cats = Array.isArray(idea.categories) ? idea.categories : [];
                                     const commentCount = Array.isArray(idea.comments) ? idea.comments.length : 0;
@@ -193,6 +228,33 @@ export default function IdeaListPage() {
                                 })}
                             </tbody>
                         </table>
+                    </div>
+                )}
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:'1rem', paddingTop:'1rem', borderTop:'1px solid #F3F4F6' }}>
+                        <span style={{ fontSize:'12px', color:'#6B7280' }}>
+                            Showing {(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE, filtered.length)} of {filtered.length} ideas
+                        </span>
+                        <div style={{ display:'flex', gap:'4px', alignItems:'center' }}>
+                            <button onClick={() => setPage(1)} disabled={page===1}
+                                style={{ padding:'5px 9px', borderRadius:'6px', border:'1px solid #E5E7EB', background:page===1?'#F9FAFB':'#fff', color:page===1?'#D1D5DB':'#374151', fontSize:'12px', fontWeight:600, cursor:page===1?'default':'pointer', fontFamily:'inherit' }}>«</button>
+                            <button onClick={() => setPage(p => Math.max(1,p-1))} disabled={page===1}
+                                style={{ padding:'5px 10px', borderRadius:'6px', border:'1px solid #E5E7EB', background:page===1?'#F9FAFB':'#fff', color:page===1?'#D1D5DB':'#374151', fontSize:'12px', fontWeight:600, cursor:page===1?'default':'pointer', fontFamily:'inherit' }}>‹ Prev</button>
+                            {Array.from({length:totalPages},(_,i)=>i+1)
+                                .filter(p => p===1||p===totalPages||Math.abs(p-page)<=1)
+                                .reduce((acc,p,i,arr) => { if(i>0&&p-arr[i-1]>1)acc.push('…'); acc.push(p); return acc; }, [])
+                                .map((p,i) => p==='…'
+                                    ? <span key={`e${i}`} style={{ padding:'5px 6px', fontSize:'12px', color:'#9CA3AF' }}>…</span>
+                                    : <button key={p} onClick={() => setPage(p)}
+                                        style={{ padding:'5px 10px', borderRadius:'6px', border:`1px solid ${page===p?'#2563EB':'#E5E7EB'}`, background:page===p?'#2563EB':'#fff', color:page===p?'#fff':'#374151', fontSize:'12px', fontWeight:600, cursor:'pointer', fontFamily:'inherit', minWidth:'32px' }}>{p}</button>
+                                )}
+                            <button onClick={() => setPage(p => Math.min(totalPages,p+1))} disabled={page===totalPages}
+                                style={{ padding:'5px 10px', borderRadius:'6px', border:'1px solid #E5E7EB', background:page===totalPages?'#F9FAFB':'#fff', color:page===totalPages?'#D1D5DB':'#374151', fontSize:'12px', fontWeight:600, cursor:page===totalPages?'default':'pointer', fontFamily:'inherit' }}>Next ›</button>
+                            <button onClick={() => setPage(totalPages)} disabled={page===totalPages}
+                                style={{ padding:'5px 9px', borderRadius:'6px', border:'1px solid #E5E7EB', background:page===totalPages?'#F9FAFB':'#fff', color:page===totalPages?'#D1D5DB':'#374151', fontSize:'12px', fontWeight:600, cursor:page===totalPages?'default':'pointer', fontFamily:'inherit' }}>»</button>
+                        </div>
                     </div>
                 )}
             </div>

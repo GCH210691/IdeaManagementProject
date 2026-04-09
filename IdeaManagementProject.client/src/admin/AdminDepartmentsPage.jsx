@@ -112,22 +112,39 @@ export default function AdminDepartmentsPage() {
 
       {/* Create form */}
       <div style={{...card,marginBottom:'1.25rem'}}>
-        <h2 style={{margin:'0 0 0.25rem',fontSize:'14px',fontWeight:700,color:C.text}}>Create Department</h2>
-        <p style={{margin:'0 0 1rem',fontSize:'12px',color:C.textSub}}>Add a new department and optionally assign its QA coordinator.</p>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr auto',gap:'0.75rem',alignItems:'end',flexWrap:'wrap'}}>
+        <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'1rem'}}>
+          <div style={{width:'32px',height:'32px',borderRadius:'8px',background:`${C.primary}18`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:'16px'}}>🏢</div>
           <div>
-            <label style={{display:'block',fontSize:'11px',fontWeight:700,color:C.textSub,marginBottom:'5px',textTransform:'uppercase',letterSpacing:'0.05em'}}>Department name</label>
-            <input value={createName} onChange={e=>setCreateName(e.target.value)} placeholder="Department name" style={inp}/>
+            <h2 style={{margin:0,fontSize:'14px',fontWeight:700,color:C.text}}>Create Department</h2>
+            <p style={{margin:0,fontSize:'12px',color:C.textSub}}>Add a new department and optionally assign its QA coordinator.</p>
+          </div>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1rem',marginBottom:'1rem'}}>
+          <div>
+            <label style={{display:'block',fontSize:'11px',fontWeight:700,color:C.textSub,marginBottom:'5px',textTransform:'uppercase',letterSpacing:'0.05em'}}>Department name *</label>
+            <input value={createName} onChange={e=>setCreateName(e.target.value)} placeholder="e.g. Computer Science" style={inp}
+              onKeyDown={e=>e.key==='Enter'&&createDepartment()}/>
           </div>
           <div>
-            <label style={{display:'block',fontSize:'11px',fontWeight:700,color:C.textSub,marginBottom:'5px',textTransform:'uppercase',letterSpacing:'0.05em'}}>QA Coordinators</label>
-            <select multiple value={createQaUserIds} onChange={e=>setCreateQaUserIds(readSelected(e))} style={{...inp,minHeight:'80px',cursor:'pointer'}}>
-              {qaCoordinators.map(c=><option key={c.id} value={String(c.id)}>{c.name} ({c.email})</option>)}
+            <label style={{display:'block',fontSize:'11px',fontWeight:700,color:C.textSub,marginBottom:'5px',textTransform:'uppercase',letterSpacing:'0.05em'}}>
+              QA Coordinators <span style={{fontWeight:400,textTransform:'none',letterSpacing:0,color:C.textMuted}}>(optional)</span>
+            </label>
+            <select multiple value={createQaUserIds} onChange={e=>setCreateQaUserIds(readSelected(e))} style={{...inp,minHeight:'76px',cursor:'pointer'}}>
+              {qaCoordinators.length===0
+                ? <option disabled>No coordinators available</option>
+                : qaCoordinators.map(c=><option key={c.id} value={String(c.id)}>{c.name} ({c.email})</option>)}
             </select>
             <div style={{fontSize:'10px',color:C.textMuted,marginTop:'3px'}}>Hold Ctrl/Cmd to select multiple</div>
           </div>
-          <button onClick={createDepartment} disabled={saving} style={{padding:'0.6rem 1.1rem',border:'none',borderRadius:'8px',background:C.primary,color:'#fff',fontSize:'13px',fontWeight:600,cursor:saving?'not-allowed':'pointer',fontFamily:font,height:'38px',whiteSpace:'nowrap'}}>
-            {saving?'…':'Create department'}
+        </div>
+        <div style={{display:'flex',justifyContent:'flex-end',borderTop:`1px solid ${C.border}`,paddingTop:'0.9rem'}}>
+          <button onClick={createDepartment} disabled={saving||!createName.trim()}
+            style={{display:'flex',alignItems:'center',gap:'6px',padding:'0.6rem 1.25rem',border:'none',borderRadius:'8px',
+              background:saving||!createName.trim()?'#CBD5E1':C.primary,
+              color:'#fff',fontSize:'13px',fontWeight:600,
+              cursor:saving||!createName.trim()?'not-allowed':'pointer',fontFamily:font,
+              boxShadow:saving||!createName.trim()?'none':`0 2px 8px ${C.primary}44`,transition:'all .15s'}}>
+            {saving?'Creating…':'+ Create department'}
           </button>
         </div>
       </div>
@@ -157,31 +174,42 @@ export default function AdminDepartmentsPage() {
                 const coordinatorNames=Array.isArray(row.qaCoordinators)&&row.qaCoordinators.length>0?row.qaCoordinators.map(c=>c.name).join(', '):'No coordinator assigned';
                 const isAssigned=Array.isArray(row.qaCoordinators)&&row.qaCoordinators.length>0;
                 return (
-                  <tr key={row.departmentId} style={{background:idx%2===0?'#fff':'#FAFBFF'}}>
-                    <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,verticalAlign:'middle'}}>
-                      {editing?<input value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} style={{...inp,width:'200px'}}/> : (
+                  <tr key={row.departmentId} style={{background:editing?'#F5F3FF':idx%2===0?'#fff':'#FAFBFF',transition:'background .15s'}}>
+                    <td style={{padding:'12px 14px',borderBottom:editing?'none':`1px solid ${C.border}`,verticalAlign:'middle',borderLeft:editing?`3px solid ${C.primary}`:'3px solid transparent'}}>
+                      {editing ? (
+                        <div>
+                          <label style={{display:'block',fontSize:'10px',fontWeight:700,color:C.primary,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'4px'}}>Department name</label>
+                          <input value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} style={{...inp,width:'100%',boxSizing:'border-box',background:'#fff',borderColor:C.primary}}/>
+                        </div>
+                      ) : (
                         <div>
                           <div style={{fontWeight:700,color:C.text}}>{row.name}</div>
                           <div style={{fontSize:'11px',color:C.textMuted}}>ID: {row.departmentId}</div>
                         </div>
                       )}
                     </td>
-                    <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,verticalAlign:'middle'}}>
-                      {editing?(
-                        <select multiple value={form.qaCoordinatorUserIds} onChange={e=>setForm(p=>({...p,qaCoordinatorUserIds:readSelected(e)}))} style={{...inp,minHeight:'72px',cursor:'pointer',width:'220px'}}>
-                          {qaCoordinators.map(c=><option key={c.id} value={String(c.id)}>{c.name}</option>)}
-                        </select>
-                      ):<span style={{fontSize:'13px',color:isAssigned?C.text:C.textMuted}}>{coordinatorNames}</span>}
+                    <td style={{padding:'12px 14px',borderBottom:editing?'none':`1px solid ${C.border}`,verticalAlign:'middle'}}>
+                      {editing ? (
+                        <div>
+                          <label style={{display:'block',fontSize:'10px',fontWeight:700,color:C.primary,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'4px'}}>QA Coordinators</label>
+                          <select multiple value={form.qaCoordinatorUserIds} onChange={e=>setForm(p=>({...p,qaCoordinatorUserIds:readSelected(e)}))} style={{...inp,minHeight:'72px',cursor:'pointer',width:'100%',boxSizing:'border-box',background:'#fff',borderColor:C.primary}}>
+                            {qaCoordinators.map(c=><option key={c.id} value={String(c.id)}>{c.name}</option>)}
+                          </select>
+                          <div style={{fontSize:'10px',color:C.textMuted,marginTop:'3px'}}>Hold Ctrl/Cmd for multiple</div>
+                        </div>
+                      ) : <span style={{fontSize:'13px',color:isAssigned?C.text:C.textMuted}}>{coordinatorNames}</span>}
                     </td>
-                    <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,verticalAlign:'middle'}}>
+                    <td style={{padding:'12px 14px',borderBottom:editing?'none':`1px solid ${C.border}`,verticalAlign:'middle'}}>
                       <span style={{display:'inline-block',padding:'2px 9px',borderRadius:'999px',fontSize:'11.5px',fontWeight:700,background:isAssigned?'#D1FAE5':'#FEF3C7',color:isAssigned?'#065F46':'#92400E'}}>{isAssigned?'Assigned':'Unassigned'}</span>
                     </td>
-                    <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,verticalAlign:'middle'}}>
+                    <td style={{padding:'12px 14px',borderBottom:editing?'none':`1px solid ${C.border}`,verticalAlign:'middle'}}>
                       <div style={{display:'flex',gap:'6px'}}>
                         {!editing&&<button onClick={()=>beginEdit(row)} style={{padding:'5px 12px',border:'none',borderRadius:'6px',background:'#DBEAFE',color:'#1E40AF',fontSize:'12px',fontWeight:700,cursor:'pointer',fontFamily:font}}>Edit</button>}
                         {editing&&<>
-                          <button onClick={saveEdit} disabled={saving} style={{padding:'5px 12px',border:'none',borderRadius:'6px',background:C.primary,color:'#fff',fontSize:'12px',fontWeight:700,cursor:saving?'not-allowed':'pointer',fontFamily:font}}>Save</button>
-                          <button onClick={cancelEdit} style={{padding:'5px 12px',border:`1px solid ${C.border}`,borderRadius:'6px',background:'#fff',color:C.textSub,fontSize:'12px',fontWeight:700,cursor:'pointer',fontFamily:font}}>Cancel</button>
+                          <button onClick={saveEdit} disabled={saving} style={{padding:'6px 14px',border:'none',borderRadius:'7px',background:saving?'#818CF8':C.primary,color:'#fff',fontSize:'12px',fontWeight:700,cursor:saving?'not-allowed':'pointer',fontFamily:font,boxShadow:`0 2px 6px ${C.primary}44`,display:'flex',alignItems:'center',gap:'4px'}}>
+                            {saving?'Saving…':'✓ Save'}
+                          </button>
+                          <button onClick={cancelEdit} style={{padding:'6px 14px',border:`1.5px solid ${C.border}`,borderRadius:'7px',background:'#fff',color:C.textSub,fontSize:'12px',fontWeight:700,cursor:'pointer',fontFamily:font}}>✕ Cancel</button>
                         </>}
                         {!editing&&<button onClick={()=>deleteDepartment(row)} disabled={saving} style={{padding:'5px 12px',border:'none',borderRadius:'6px',background:'#FEE2E2',color:'#991B1B',fontSize:'12px',fontWeight:700,cursor:'pointer',fontFamily:font}}>Delete</button>}
                       </div>

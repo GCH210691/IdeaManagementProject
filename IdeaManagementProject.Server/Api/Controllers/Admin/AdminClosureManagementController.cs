@@ -243,7 +243,7 @@ public class AdminClosureManagementController : ControllerBase
         if (idea.ClosurePeriod is null)
             return UnprocessableEntity(new { message = "This idea has no associated closure period." });
 
-        idea.ClosurePeriod.CommentEndAt = request.CommentEndAt.Value.ToUniversalTime();
+        idea.ClosurePeriod.CommentEndAt = NormalizeToClosureDateTime(request.CommentEndAt.Value);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return Ok(new { ideaId, commentEndAt = idea.ClosurePeriod.CommentEndAt });

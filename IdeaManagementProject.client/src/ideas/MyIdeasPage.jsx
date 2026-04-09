@@ -10,6 +10,11 @@ import {
 import StaffShell from '../shells/StaffShell';
 import { C, card, font } from '../theme';
 
+const badge = {
+  primary: {display:'inline-block',padding:'2px 8px',borderRadius:'999px',fontWeight:600,background:'#EEF2FF',color:'#3730A3'},
+  neutral: {display:'inline-block',padding:'2px 8px',borderRadius:'999px',fontWeight:600,background:'#F1F5F9',color:'#64748B'},
+};
+
 function toRelativeTime(v) {
   if(!v)return'';const d=Date.now()-new Date(v).getTime();if(d<0)return'Just now';const m=Math.floor(d/60000);if(m<1)return'Just now';if(m<60)return m+'m ago';const h=Math.floor(m/60);if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago';
 }

@@ -134,7 +134,7 @@ export default function IdeaDetailsPage() {
     return (
         <StaffShell activeMenu="ideas" footerText="Idea detail">
             {lightbox && <Lightbox src={lightbox.url} name={lightbox.name} onClose={() => setLightbox(null)} />}
-            <div style={{maxWidth:'820px'}}>
+            <div style={{maxWidth:'1100px'}}>
                 <button
                     onClick={() => window.history.length > 1 ? window.history.back() : window.location.href='/ideas'}
                     style={{display:'inline-flex',alignItems:'center',gap:'6px',background:'none',border:'none',cursor:'pointer',color:'#6B7280',fontSize:'13px',fontWeight:600,padding:'0 0 1.25rem 0',fontFamily:'inherit'}}>

@@ -10,8 +10,14 @@ function swMessage(sw) {
   if(!sw) return {text:'Loading submission window…',color:C.textSub};
   if(sw.state==='open') return {text:`✅ Submission open · closes ${fmtDT(sw.ideaEndAt)}`,color:C.successDk,bg:C.successLt};
   if(sw.state==='upcoming') return {text:`⏳ Upcoming · opens ${fmtDT(sw.ideaStartAt)}`,color:'#0369A1',bg:'#E0F2FE'};
-  if(sw.state==='closed') return {text:`🔒 Last window closed ${fmtDT(sw.ideaEndAt)}`,color:C.dangerDk,bg:C.dangerLt};
-  return {text:'No submission window configured.',color:C.textSub,bg:'#F1F5F9'};
+  if(sw.state==='closed') {
+    const closedAt = sw.ideaEndAt ? new Date(sw.ideaEndAt) : null;
+    const isStaleData = closedAt && closedAt.getFullYear() < 2020;
+    return isStaleData
+      ? {text:'🔒 No active submission window. Please contact the administrator to configure one.',color:C.dangerDk,bg:C.dangerLt}
+      : {text:`🔒 Submission closed · ended ${fmtDT(sw.ideaEndAt)}`,color:C.dangerDk,bg:C.dangerLt};
+  }
+  return {text:'🔒 No submission window configured. Please contact the administrator.',color:C.textSub,bg:'#F1F5F9'};
 }
 
 const inp = {width:'100%',boxSizing:'border-box',padding:'0.65rem 0.85rem',borderRadius:'9px',border:`1.5px solid ${C.border}`,fontSize:'14px',color:C.text,fontFamily:font,outline:'none',transition:'border-color .15s, box-shadow .15s'};
@@ -74,7 +80,7 @@ export default function CreateIdeaPage() {
 
   return (
     <StaffShell activeMenu="create">
-      <div style={{maxWidth:'720px'}}>
+      <div style={{maxWidth:'1100px'}}>
         <div style={{marginBottom:'1.5rem'}}>
           <h1 style={{margin:'0 0 4px',fontSize:'1.55rem',fontWeight:800,color:C.text,letterSpacing:'-0.02em'}}>Submit an Idea</h1>
           <p style={{margin:0,fontSize:'13px',color:C.textSub}}>Share your idea with the community during the active submission window.</p>
@@ -92,8 +98,8 @@ export default function CreateIdeaPage() {
             {/* Title */}
             <div style={{marginBottom:'1.1rem'}}>
               <Label>Title *</Label>
-              <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Give your idea a clear, concise title" disabled={submitting||!submissionOpen}
-                style={{...inp,background:!submissionOpen?'#F8FAFC':'#fff'}}
+              <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Give your idea a clear, concise title" disabled={submitting}
+                style={{...inp,background:'#fff'}}
                 onFocus={e=>{e.target.style.borderColor=C.primary;e.target.style.boxShadow=`0 0 0 3px ${C.primaryLt}`;}}
                 onBlur={e=>{e.target.style.borderColor=C.border;e.target.style.boxShadow='none';}}/>
             </div>
@@ -101,8 +107,8 @@ export default function CreateIdeaPage() {
             {/* Content */}
             <div style={{marginBottom:'1.1rem'}}>
               <Label>Content *</Label>
-              <textarea value={content} onChange={e=>setContent(e.target.value)} placeholder="Describe your idea in detail…" disabled={submitting||!submissionOpen} rows={6}
-                style={{...inp,minHeight:'150px',resize:'vertical',background:!submissionOpen?'#F8FAFC':'#fff',lineHeight:1.65}}
+              <textarea value={content} onChange={e=>setContent(e.target.value)} placeholder="Describe your idea in detail…" disabled={submitting} rows={6}
+                style={{...inp,minHeight:'150px',resize:'vertical',background:'#fff',lineHeight:1.65}}
                 onFocus={e=>{e.target.style.borderColor=C.primary;e.target.style.boxShadow=`0 0 0 3px ${C.primaryLt}`;}}
                 onBlur={e=>{e.target.style.borderColor=C.border;e.target.style.boxShadow='none';}}/>
             </div>
@@ -113,8 +119,8 @@ export default function CreateIdeaPage() {
                 <Label>Categories <span style={{fontWeight:400,textTransform:'none',fontSize:'11px',color:C.textMuted}}>(hold Ctrl/Cmd for multiple)</span></Label>
                 <select multiple value={selectedCategoryIds.map(String)}
                   onChange={e=>setSelectedCategoryIds(toSelectedIds(e.target))}
-                  disabled={submitting||!submissionOpen}
-                  style={{...inp,minHeight:'100px',cursor:'pointer',background:!submissionOpen?'#F8FAFC':'#fff'}}>
+                  disabled={submitting}
+                  style={{...inp,minHeight:'100px',cursor:'pointer',background:'#fff'}}>
                   {categories.map(c=><option key={c.categoryId} value={c.categoryId}>{c.name}</option>)}
                 </select>
               </div>
@@ -124,7 +130,7 @@ export default function CreateIdeaPage() {
             <div style={{marginBottom:'1.1rem'}}>
               <Label>Attachments <span style={{fontWeight:400,textTransform:'none',fontSize:'11px',color:C.textMuted}}>(optional)</span></Label>
               <div style={{border:`1.5px dashed ${C.border}`,borderRadius:'9px',padding:'1.25rem',background:'#F8FAFC',textAlign:'center'}}>
-                <input type="file" multiple onChange={e=>setFiles(Array.from(e.target.files||[]))} disabled={submitting||!submissionOpen}
+                <input type="file" multiple onChange={e=>setFiles(Array.from(e.target.files||[]))} disabled={submitting}
                   style={{display:'block',margin:'0 auto',fontSize:'13px',color:C.textSub,cursor:'pointer'}}/>
                 {files.length>0 && (
                   <div style={{marginTop:'0.75rem',display:'flex',flexWrap:'wrap',gap:'6px',justifyContent:'center'}}>
@@ -136,8 +142,8 @@ export default function CreateIdeaPage() {
 
             {/* Anonymous toggle */}
             <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'1.5rem',padding:'0.75rem',borderRadius:'9px',background:'#F8FAFC',border:`1px solid ${C.border}`}}>
-              <div onClick={()=>!submitting&&submissionOpen&&setIsAnonymous(!isAnonymous)}
-                style={{width:'40px',height:'22px',borderRadius:'11px',background:isAnonymous?C.primary:'#CBD5E1',cursor:submissionOpen?'pointer':'not-allowed',position:'relative',transition:'background .2s',flexShrink:0}}>
+              <div onClick={()=>!submitting&&setIsAnonymous(!isAnonymous)}
+                style={{width:'40px',height:'22px',borderRadius:'11px',background:isAnonymous?C.primary:'#CBD5E1',cursor:'pointer',position:'relative',transition:'background .2s',flexShrink:0}}>
                 <div style={{position:'absolute',top:'3px',left:isAnonymous?'21px':'3px',width:'16px',height:'16px',borderRadius:'50%',background:'#fff',transition:'left .2s',boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}/>
               </div>
               <div>
