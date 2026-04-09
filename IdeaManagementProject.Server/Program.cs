@@ -106,22 +106,52 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+var enableHttpsRedirection = builder.Configuration.GetValue<bool>("Deployment:EnableHttpsRedirection");
+var spaIndexPath = Path.Combine(app.Environment.WebRootPath ?? string.Empty, "index.html");
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-else
+else if (enableHttpsRedirection)
 {
     app.UseHttpsRedirection();
 }
 
+if (!app.Environment.IsDevelopment())
+{
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+}
+
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseCors();
 
 app.MapControllers();
+if (!app.Environment.IsDevelopment())
+{
+    app.MapFallback(async context =>
+    {
+        if (context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase) ||
+            context.Request.Path.StartsWithSegments("/swagger", StringComparison.OrdinalIgnoreCase))
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        if (!File.Exists(spaIndexPath))
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            await context.Response.WriteAsync("The frontend build was not found. Run dotnet publish so the client app is copied into wwwroot.");
+            return;
+        }
+
+        context.Response.ContentType = "text/html; charset=utf-8";
+        await context.Response.SendFileAsync(spaIndexPath);
+    });
+}
 
 await DbInitializer.InitializeAsync(app.Services);
 
