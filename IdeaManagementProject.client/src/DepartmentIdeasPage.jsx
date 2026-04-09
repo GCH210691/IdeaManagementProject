@@ -2,74 +2,27 @@ import { useEffect, useMemo, useState } from 'react';
 import { BASE_URL, getAuthHeaders, getAuthSession, isDashboardRole, roleToPath } from './shared/authStorage';
 import StaffShell from './shells/StaffShell';
 
-function pageHeaderStyle() {
-    return {
-        marginBottom: '1rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '1rem',
-        flexWrap: 'wrap',
-    };
+function pageHeaderStyle() { return { marginBottom:'1rem', display:'flex', alignItems:'center', justifyContent:'space-between', gap:'1rem', flexWrap:'wrap' }; }
+function h1Style() { return { margin:'0 0 0.25rem 0', fontSize:'1.5rem', fontWeight:900, color:'#111827' }; }
+function subStyle() { return { margin:0, fontSize:'13px', color:'#6B7280' }; }
+function statsGridStyle() { return { display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'1rem', marginBottom:'1.25rem' }; }
+function statCardStyle() { return { background:'#fff', borderRadius:'12px', border:'1px solid #F3F4F6', padding:'1.25rem', boxSizing:'border-box' }; }
+function cardStyle() { return { background:'#fff', borderRadius:'12px', border:'1px solid #F3F4F6', padding:'1.25rem' }; }
+
+function categoryTagStyle() {
+    return { display:'inline-block', padding:'2px 7px', marginRight:'3px', marginBottom:'3px', borderRadius:'999px', background:'#EEF2FF', color:'#3730A3', fontSize:'10px', fontWeight:600 };
 }
 
-function h1Style() {
-    return { margin: '0 0 0.25rem 0', fontSize: '1.5rem', fontWeight: 900, color: '#111827' };
-}
-
-function subStyle() {
-    return { margin: 0, fontSize: '13px', color: '#6B7280' };
-}
-
-function statsGridStyle() {
-    return {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '1rem',
-        marginBottom: '1.25rem',
-    };
-}
-
-function statCardStyle() {
-    return {
-        background: '#fff',
-        borderRadius: '12px',
-        border: '1px solid #F3F4F6',
-        padding: '1.25rem',
-        boxSizing: 'border-box',
-    };
-}
-
-function sectionStyle() {
-    return {
-        background: '#fff',
-        borderRadius: '12px',
-        border: '1px solid #F3F4F6',
-        padding: '1.25rem',
-    };
-}
-
-function rowStyle(isLast) {
-    return {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '1rem',
-        paddingBottom: isLast ? 0 : '0.9rem',
-        marginBottom: isLast ? 0 : '0.9rem',
-        borderBottom: isLast ? 'none' : '1px solid #F3F4F6',
-    };
-}
-
-function badgeStyle() {
-    return {
-        fontSize: '11px',
-        fontWeight: 700,
-        padding: '2px 8px',
-        borderRadius: '999px',
-        background: '#DBEAFE',
-        color: '#1D4ED8',
-    };
+function toRelativeTime(value) {
+    if (!value) return '';
+    const diffMs = Date.now() - new Date(value).getTime();
+    if (diffMs < 0) return 'Just now';
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return 'Just now';
+    if (diffMin < 60) return diffMin + 'm ago';
+    const diffHour = Math.floor(diffMin / 60);
+    if (diffHour < 24) return diffHour + 'h ago';
+    return Math.floor(diffHour / 24) + 'd ago';
 }
 
 export default function DepartmentIdeasPage() {
@@ -80,126 +33,130 @@ export default function DepartmentIdeasPage() {
     const [message, setMessage] = useState('Loading department data...');
 
     useEffect(() => {
-        if (!session?.token || !user) {
-            window.location.href = '/login';
-            return;
-        }
-
-        if (!isDashboardRole(user)) {
-            window.location.href = roleToPath(user.role);
-            return;
-        }
+        if (!session?.token || !user) { window.location.href = '/login'; return; }
+        if (!isDashboardRole(user)) { window.location.href = roleToPath(user.role); return; }
 
         let cancelled = false;
-
         async function loadIdeas() {
             try {
-                const endpoint = BASE_URL ? `${BASE_URL}/api/ideas` : '/api/ideas';
-                const response = await fetch(endpoint, {
-                    headers: getAuthHeaders({ Accept: 'application/json' }),
-                });
-
-                if (response.status === 401) {
-                    window.location.href = '/login';
-                    return;
-                }
-
-                if (!response.ok) {
-                    setMessage(`Unable to load ideas: ${response.status}`);
-                    return;
-                }
-
-                const payload = await response.json();
-                if (cancelled) {
-                    return;
-                }
-
+                const endpoint = BASE_URL ? BASE_URL + '/api/ideas' : '/api/ideas';
+                const res = await fetch(endpoint, { headers: getAuthHeaders({ Accept: 'application/json' }) });
+                if (res.status === 401) { window.location.href = '/login'; return; }
+                if (!res.ok) { setMessage('Unable to load ideas: ' + res.status); return; }
+                const payload = await res.json();
+                if (cancelled) return;
                 setIdeas(Array.isArray(payload) ? payload : []);
                 setMessage('');
-            } catch (error) {
-                const details = error instanceof Error ? error.message : String(error);
-                setMessage(`Load error: ${details}`);
-            }
+            } catch (e) { setMessage('Load error: ' + (e instanceof Error ? e.message : String(e))); }
         }
-
         loadIdeas();
-
-        return () => {
-            cancelled = true;
-        };
+        return () => { cancelled = true; };
     }, [session, user]);
 
-    const summary = useMemo(() => {
-        const grouped = new Map();
+    // ── KEY FIX: filter ideas belonging to the current user's department ──
+    const userDepartmentId = user?.departmentId;
+    const myDeptName = useMemo(() => {
+        if (!userDepartmentId || ideas.length === 0) return null;
+        const found = ideas.find(i => i.departmentId === userDepartmentId);
+        return found?.departmentName || null;
+    }, [ideas, userDepartmentId]);
 
-        for (const idea of ideas) {
-            const key = idea.departmentName || 'Unknown';
-            const current = grouped.get(key) || { name: key, count: 0, views: 0 };
-            current.count += 1;
-            current.views += idea.viewCount || 0;
-            grouped.set(key, current);
-        }
+    const deptIdeas = useMemo(() => {
+        if (!userDepartmentId) return ideas; // fallback: show all if no department
+        return ideas.filter(i => i.departmentId === userDepartmentId);
+    }, [ideas, userDepartmentId]);
 
-        return [...grouped.values()].sort((a, b) => b.count - a.count);
-    }, [ideas]);
+    // Stats for the user's department
+    const stats = useMemo(() => {
+        const totalViews = deptIdeas.reduce((s, i) => s + (i.viewCount || 0), 0);
+        const totalUpvotes = deptIdeas.reduce((s, i) => s + (i.upvoteCount || 0), 0);
+        const totalComments = deptIdeas.reduce((s, i) => s + (Array.isArray(i.comments) ? i.comments.length : 0), 0);
+        return { totalViews, totalUpvotes, totalComments };
+    }, [deptIdeas]);
 
-    const topDepartment = summary[0];
+    if (!session?.token || !user) return null;
 
-    if (!session?.token || !user) {
-        return null;
-    }
+    const displayDeptName = myDeptName || user?.departmentName || 'Your Department';
 
     return (
-        <StaffShell activeMenu="departments" footerText={`${summary.length} departments tracked`}>
+        <StaffShell activeMenu="departments" footerText={deptIdeas.length + ' ideas in your department'}>
             <div style={pageHeaderStyle()}>
                 <div>
-                    <h1 style={h1Style()}>Departments</h1>
-                    <p style={subStyle()}>Browse idea activity grouped by department.</p>
+                    <h1 style={h1Style()}>Department: {displayDeptName}</h1>
+                    <p style={subStyle()}>Ideas submitted by members of your department.</p>
                 </div>
             </div>
 
+            {/* Stats */}
             <div style={statsGridStyle()}>
                 <div style={statCardStyle()}>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#111827' }}>{summary.length}</div>
-                    <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>Departments with ideas</div>
+                    <div style={{ fontSize:'1.75rem', fontWeight:900, color:'#111827' }}>{deptIdeas.length}</div>
+                    <div style={{ fontSize:'12px', color:'#6B7280', marginTop:'4px' }}>Ideas submitted</div>
                 </div>
                 <div style={statCardStyle()}>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#111827' }}>{ideas.length}</div>
-                    <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>Ideas across departments</div>
+                    <div style={{ fontSize:'1.75rem', fontWeight:900, color:'#111827' }}>{stats.totalViews}</div>
+                    <div style={{ fontSize:'12px', color:'#6B7280', marginTop:'4px' }}>Total views</div>
                 </div>
                 <div style={statCardStyle()}>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#111827' }}>{topDepartment ? topDepartment.name : 'None'}</div>
-                    <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>Largest department by idea count</div>
+                    <div style={{ fontSize:'1.75rem', fontWeight:900, color:'#111827' }}>{stats.totalComments}</div>
+                    <div style={{ fontSize:'12px', color:'#6B7280', marginTop:'4px' }}>Total comments</div>
                 </div>
             </div>
 
-            {message && <p style={{ color: '#B91C1C', marginTop: 0 }}>{message}</p>}
+            {message && <p style={{ color:'#B91C1C', marginTop:0 }}>{message}</p>}
 
-            {!message && summary.length === 0 && (
-                <div style={sectionStyle()}>
-                    <p style={{ margin: 0, color: '#6B7280', fontSize: '13px' }}>No department data yet.</p>
+            {!message && deptIdeas.length === 0 && (
+                <div style={cardStyle()}>
+                    <p style={{ margin:0, color:'#6B7280', fontSize:'13px' }}>No ideas from your department yet.</p>
                 </div>
             )}
 
-            {!message && summary.length > 0 && (
-                <div style={sectionStyle()}>
-                    <h2 style={{ margin: '0 0 1rem 0', fontSize: '13px', fontWeight: 700, color: '#1F2937' }}>
-                        Ideas by department
+            {!message && deptIdeas.length > 0 && (
+                <div style={cardStyle()}>
+                    <h2 style={{ margin:'0 0 1rem 0', fontSize:'13px', fontWeight:700, color:'#1F2937' }}>
+                        Ideas from {displayDeptName}
                     </h2>
-                    {summary.map((item, index) => (
-                        <div key={item.name} style={rowStyle(index === summary.length - 1)}>
-                            <div>
-                                <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827' }}>{item.name}</div>
-                                <div style={{ marginTop: '0.2rem', fontSize: '12px', color: '#6B7280' }}>
-                                    {item.views} total views
+                    {deptIdeas.map((idea, index) => {
+                        const cats = Array.isArray(idea.categories) ? idea.categories : [];
+                        const commentCount = Array.isArray(idea.comments) ? idea.comments.length : 0;
+                        const isLast = index === deptIdeas.length - 1;
+                        return (
+                            <div key={idea.ideaId} style={{
+                                display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'1rem',
+                                paddingBottom: isLast ? 0 : '0.9rem',
+                                marginBottom: isLast ? 0 : '0.9rem',
+                                borderBottom: isLast ? 'none' : '1px solid #F3F4F6',
+                                flexWrap:'wrap',
+                            }}>
+                                <div style={{ flex:1, minWidth:0 }}>
+                                    <div style={{ fontWeight:700, fontSize:'13px', color:'#111827', marginBottom:'4px', lineHeight:1.3 }}>
+                                        {idea.title}
+                                    </div>
+                                    <div style={{ fontSize:'12px', color:'#6B7280', marginBottom:'6px' }}>
+                                        by {idea.authorName} · {toRelativeTime(idea.createdAt)}
+                                    </div>
+                                    {cats.length > 0 && (
+                                        <div style={{ marginBottom:'6px' }}>
+                                            {cats.map(c => <span key={c} style={categoryTagStyle()}>{c}</span>)}
+                                        </div>
+                                    )}
+                                    <div style={{ display:'flex', gap:'1rem', fontSize:'12px', color:'#6B7280' }}>
+                                        <span>👁 {idea.viewCount || 0}</span>
+                                        <span style={{ color:'#059669' }}>👍 {idea.upvoteCount || 0}</span>
+                                        <span style={{ color:'#DC2626' }}>👎 {idea.downvoteCount || 0}</span>
+                                        <span>💬 {commentCount}</span>
+                                    </div>
                                 </div>
+                                <button
+                                    onClick={() => window.location.href = '/ideas/' + idea.ideaId}
+                                    style={{ border:'none', borderRadius:'7px', padding:'5px 12px', fontSize:'12px', fontWeight:700, cursor:'pointer', fontFamily:'inherit', background:'#DBEAFE', color:'#1E40AF', flexShrink:0 }}>
+                                    View
+                                </button>
                             </div>
-                            <span style={badgeStyle()}>{item.count} ideas</span>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </StaffShell>
     );
 }
-

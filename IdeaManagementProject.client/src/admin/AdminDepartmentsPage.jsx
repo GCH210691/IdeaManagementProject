@@ -1,802 +1,199 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
+import { BASE_URL, getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
 import AdminShell from '../shells/AdminShell';
+import { C, card, font } from '../shared/designTokens';
 
-function containerStyle() {
-    return {
-        maxWidth: '1240px',
-        margin: '0 auto',
-    };
-}
-
-function headerStyle() {
-    return {
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between',
-        gap: '1rem',
-        marginBottom: '1.5rem',
-        flexWrap: 'wrap',
-    };
-}
-
-function titleStyle() {
-    return {
-        margin: 0,
-        fontSize: '1.75rem',
-        fontWeight: 900,
-        color: '#111827',
-    };
-}
-
-function subtitleStyle() {
-    return {
-        margin: '0.35rem 0 0 0',
-        color: '#6B7280',
-        fontSize: '13px',
-    };
-}
-
-function primaryButtonStyle() {
-    return {
-        padding: '0.7rem 1rem',
-        borderRadius: '10px',
-        border: 'none',
-        background: '#2563EB',
-        color: '#FFFFFF',
-        fontSize: '13px',
-        fontWeight: 700,
-        cursor: 'pointer',
-        fontFamily: 'inherit',
-    };
-}
-
-function secondaryButtonStyle() {
-    return {
-        padding: '0.7rem 1rem',
-        borderRadius: '10px',
-        border: '1px solid #D1D5DB',
-        background: '#FFFFFF',
-        color: '#111827',
-        fontSize: '13px',
-        fontWeight: 700,
-        cursor: 'pointer',
-        fontFamily: 'inherit',
-    };
-}
-
-function summaryGridStyle() {
-    return {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-        gap: '1rem',
-        marginBottom: '1.25rem',
-    };
-}
-
-function summaryCardStyle() {
-    return {
-        background: '#FFFFFF',
-        border: '1px solid #E5E7EB',
-        borderRadius: '14px',
-        padding: '1rem 1.1rem',
-        boxSizing: 'border-box',
-    };
-}
-
-function summaryValueStyle() {
-    return {
-        fontSize: '1.75rem',
-        fontWeight: 900,
-        color: '#111827',
-        lineHeight: 1.1,
-    };
-}
-
-function summaryLabelStyle() {
-    return {
-        marginTop: '0.35rem',
-        fontSize: '12px',
-        color: '#6B7280',
-    };
-}
-
-function bannerStyle(type) {
-    const palette = {
-        info: { color: '#1D4ED8', background: '#EFF6FF', border: '#BFDBFE' },
-        success: { color: '#047857', background: '#ECFDF5', border: '#A7F3D0' },
-        error: { color: '#B91C1C', background: '#FEF2F2', border: '#FECACA' },
-    };
-
-    const selected = palette[type] || palette.info;
-
-    return {
-        marginBottom: '1rem',
-        padding: '0.85rem 1rem',
-        borderRadius: '12px',
-        border: `1px solid ${selected.border}`,
-        background: selected.background,
-        color: selected.color,
-        fontSize: '13px',
-        fontWeight: 600,
-    };
-}
-
-function cardStyle() {
-    return {
-        background: '#FFFFFF',
-        border: '1px solid #E5E7EB',
-        borderRadius: '16px',
-        padding: '1.1rem',
-        boxSizing: 'border-box',
-    };
-}
-
-function createGridStyle() {
-    return {
-        display: 'grid',
-        gridTemplateColumns: 'minmax(220px, 1.2fr) minmax(280px, 1fr) auto',
-        gap: '0.85rem',
-        alignItems: 'end',
-    };
-}
-
-function toolbarStyle() {
-    return {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '1rem',
-        flexWrap: 'wrap',
-        marginBottom: '1rem',
-    };
-}
-
-function searchWrapStyle() {
-    return {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.6rem',
-        width: 'min(360px, 100%)',
-        background: '#FFFFFF',
-        border: '1px solid #D1D5DB',
-        borderRadius: '12px',
-        padding: '0.65rem 0.8rem',
-        boxSizing: 'border-box',
-    };
-}
-
-function searchInputStyle() {
-    return {
-        width: '100%',
-        border: 'none',
-        outline: 'none',
-        fontSize: '13px',
-        fontFamily: 'inherit',
-        background: 'transparent',
-        color: '#111827',
-    };
-}
-
-function fieldLabelStyle() {
-    return {
-        display: 'block',
-        marginBottom: '0.45rem',
-        fontSize: '12px',
-        color: '#6B7280',
-        fontWeight: 700,
-    };
-}
-
-function fieldStyle() {
-    return {
-        width: '100%',
-        border: '1px solid #D1D5DB',
-        borderRadius: '10px',
-        padding: '0.55rem 0.7rem',
-        fontSize: '13px',
-        fontFamily: 'inherit',
-        boxSizing: 'border-box',
-        background: '#FFFFFF',
-        color: '#111827',
-    };
-}
-
-function multiSelectStyle() {
-    return {
-        ...fieldStyle(),
-        minHeight: '120px',
-    };
-}
-
-function tableWrapStyle() {
-    return {
-        overflowX: 'auto',
-    };
-}
-
-function tableStyle() {
-    return {
-        width: '100%',
-        borderCollapse: 'collapse',
-        minWidth: '920px',
-    };
-}
-
-function thStyle() {
-    return {
-        textAlign: 'left',
-        padding: '0.85rem 0.75rem',
-        fontSize: '12px',
-        fontWeight: 700,
-        color: '#6B7280',
-        borderBottom: '1px solid #E5E7EB',
-        whiteSpace: 'nowrap',
-    };
-}
-
-function tdStyle() {
-    return {
-        padding: '0.95rem 0.75rem',
-        borderBottom: '1px solid #F3F4F6',
-        fontSize: '13px',
-        color: '#111827',
-        verticalAlign: 'top',
-    };
-}
-
-function badgeStyle(background, color) {
-    return {
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '0.25rem 0.6rem',
-        borderRadius: '999px',
-        background,
-        color,
-        fontSize: '11px',
-        fontWeight: 700,
-        whiteSpace: 'nowrap',
-    };
-}
-
-function coordinatorBadgeStyle(hasCoordinator) {
-    return hasCoordinator
-        ? badgeStyle('#DBEAFE', '#1D4ED8')
-        : badgeStyle('#F3F4F6', '#6B7280');
-}
-
-function actionRowStyle() {
-    return {
-        display: 'flex',
-        gap: '0.5rem',
-        flexWrap: 'wrap',
-    };
-}
-
-function inlineButtonStyle(kind) {
-    if (kind === 'danger') {
-        return {
-            ...secondaryButtonStyle(),
-            padding: '0.45rem 0.8rem',
-            color: '#B91C1C',
-            borderColor: '#FECACA',
-            background: '#FEF2F2',
-        };
-    }
-
-    if (kind === 'primary') {
-        return {
-            ...primaryButtonStyle(),
-            padding: '0.45rem 0.8rem',
-        };
-    }
-
-    return {
-        ...secondaryButtonStyle(),
-        padding: '0.45rem 0.8rem',
-    };
-}
+const inp = { width:'100%',boxSizing:'border-box',padding:'0.55rem 0.75rem',borderRadius:'7px',border:`1.5px solid ${C.border}`,fontSize:'13px',color:C.text,fontFamily:font,outline:'none' };
 
 export default function AdminDepartmentsPage() {
-    const session = useMemo(() => getAuthSession(), []);
-    const user = session?.user;
+  const session = useMemo(()=>getAuthSession(),[]);
+  const user = session?.user;
+  const [departments,setDepartments]=useState([]);
+  const [qaCoordinators,setQaCoordinators]=useState([]);
+  const [createName,setCreateName]=useState('');
+  const [createQaUserIds,setCreateQaUserIds]=useState([]);
+  const [editingDepartmentId,setEditingDepartmentId]=useState(0);
+  const [search,setSearch]=useState('');
+  const [form,setForm]=useState({name:'',qaCoordinatorUserIds:[]});
+  const [feedback,setFeedback]=useState({type:'info',text:'Loading…'});
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
 
-    const [departments, setDepartments] = useState([]);
-    const [qaCoordinators, setQaCoordinators] = useState([]);
-    const [createName, setCreateName] = useState('');
-    const [createQaUserIds, setCreateQaUserIds] = useState([]);
-    const [editingDepartmentId, setEditingDepartmentId] = useState(0);
-    const [search, setSearch] = useState('');
-    const [form, setForm] = useState({ name: '', qaCoordinatorUserIds: [] });
-    const [feedback, setFeedback] = useState({ type: 'info', text: 'Loading departments...' });
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
+  async function loadData(showMsg=false) {
+    setLoading(true);
+      try {
+      const [dr, ur] = await Promise.all([fetch(`${BASE_URL}/api/admin/departments`, { headers: getAuthHeaders({ Accept: 'application/json' }) }), fetch(`${BASE_URL}/api/admin/users`, { headers: getAuthHeaders({ Accept: 'application/json' }) })]);
+      if(dr.status===401||ur.status===401){window.location.href='/login';return;}
+      if(dr.status===403||ur.status===403){window.location.href='/admin/dashboard';return;}
+      if(!dr.ok||!ur.ok){setFeedback({type:'error',text:`Load failed: ${dr.status}`});return;}
+      const dd=await dr.json(); const ud=await ur.json();
+      const nextDepts=Array.isArray(dd)?dd:[];
+      setDepartments(nextDepts);
+      setQaCoordinators(Array.isArray(ud)?ud.filter(a=>a.role==='QA_COORDINATOR'):[]);
+      setFeedback(showMsg?{type:'success',text:`Loaded ${nextDepts.length} departments.`}:{type:'info',text:''});
+    } catch(e) { setFeedback({type:'error',text:'Load error: '+(e instanceof Error?e.message:String(e))}); }
+    finally { setLoading(false); }
+  }
 
-    async function loadData(showLoadedMessage = false) {
-        setLoading(true);
+  useEffect(()=>{ if(!session?.token||!user){window.location.href='/login';return;} if(user.role!=='ADMIN'){window.location.href=roleToPath(user.role);return;} loadData(); },[session,user]);
 
-        try {
-            const [departmentsResponse, usersResponse] = await Promise.all([
-                fetch('/api/admin/departments', {
-                    headers: getAuthHeaders({ Accept: 'application/json' }),
-                }),
-                fetch('/api/admin/users', {
-                    headers: getAuthHeaders({ Accept: 'application/json' }),
-                }),
-            ]);
+  const filteredDepts = useMemo(()=>{ const q=search.trim().toLowerCase(); if(!q)return departments; return departments.filter(r=>String(r.name||'').toLowerCase().includes(q)||(Array.isArray(r.qaCoordinators)&&r.qaCoordinators.some(c=>String(c.name||'').toLowerCase().includes(q)))); },[departments,search]);
+  const summary = useMemo(()=>{ const total=departments.length; const assigned=departments.filter(r=>Array.isArray(r.qaCoordinators)&&r.qaCoordinators.length>0).length; return [{label:'Total departments',value:total,accent:'#6366F1'},{label:'Assigned coordinators',value:assigned,accent:'#10B981'},{label:'Unassigned',value:total-assigned,accent:'#F59E0B'},{label:'Coordinator accounts',value:qaCoordinators.length,accent:'#06B6D4'}]; },[departments,qaCoordinators]);
 
-            if (departmentsResponse.status === 401 || usersResponse.status === 401) {
-                window.location.href = '/login';
-                return;
-            }
+  function beginEdit(row){setEditingDepartmentId(row.departmentId);setForm({name:row.name||'',qaCoordinatorUserIds:Array.isArray(row.qaCoordinators)?row.qaCoordinators.map(i=>String(i.userId)):[]});setFeedback({type:'info',text:''});}
+  function cancelEdit(){setEditingDepartmentId(0);setForm({name:'',qaCoordinatorUserIds:[]});setFeedback({type:'info',text:''});}
+  function readSelected(e){return Array.from(e.target.selectedOptions,o=>o.value);}
 
-            if (departmentsResponse.status === 403 || usersResponse.status === 403) {
-                window.location.href = '/admin/dashboard';
-                return;
-            }
+  async function createDepartment() {
+    if(!createName.trim()){setFeedback({type:'error',text:'Department name is required.'});return;}
+    setSaving(true);setFeedback({type:'info',text:'Creating…'});
+      try {
+      const res = await fetch(`${BASE_URL}/api/admin/departments`, { method: 'POST', headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }), body: JSON.stringify({ name: createName.trim(), qaCoordinatorUserIds: createQaUserIds.map(v => Number(v)) }) });
+      if(res.status===401){window.location.href='/login';return;} if(res.status===403){window.location.href='/admin/dashboard';return;}
+      const payload=await res.json().catch(()=>null);
+      if(!res.ok){setFeedback({type:'error',text:payload?.message||`Create failed: ${res.status}`});return;}
+      setCreateName('');setCreateQaUserIds([]);await loadData();setFeedback({type:'success',text:'Department created.'});
+    } catch(e){setFeedback({type:'error',text:'Create error: '+(e instanceof Error?e.message:String(e))});}
+    finally{setSaving(false);}
+  }
 
-            if (!departmentsResponse.ok || !usersResponse.ok) {
-                setFeedback({
-                    type: 'error',
-                    text: `Load failed: departments=${departmentsResponse.status}, users=${usersResponse.status}`,
-                });
-                return;
-            }
+  async function saveEdit() {
+    if(!editingDepartmentId)return;
+    if(!form.name.trim()){setFeedback({type:'error',text:'Department name is required.'});return;}
+    setSaving(true);setFeedback({type:'info',text:'Saving…'});
+    try {
+      const res=await fetch(`${BASE_URL}/api/admin/departments/${editingDepartmentId}`,{method:'PUT',headers:getAuthHeaders({'Content-Type':'application/json',Accept:'application/json'}),body:JSON.stringify({name:form.name.trim(),qaCoordinatorUserIds:form.qaCoordinatorUserIds.map(v=>Number(v))})});
+      if(res.status===401){window.location.href='/login';return;} if(res.status===403){window.location.href='/admin/dashboard';return;}
+      const payload=await res.json().catch(()=>null);
+      if(!res.ok){setFeedback({type:'error',text:payload?.message||`Save failed: ${res.status}`});return;}
+      setEditingDepartmentId(0);await loadData();setFeedback({type:'success',text:'Department updated.'});
+    } catch(e){setFeedback({type:'error',text:'Save error: '+(e instanceof Error?e.message:String(e))});}
+    finally{setSaving(false);}
+  }
 
-            const departmentsData = await departmentsResponse.json();
-            const usersData = await usersResponse.json();
-            const nextDepartments = Array.isArray(departmentsData) ? departmentsData : [];
-            const coordinators = Array.isArray(usersData)
-                ? usersData.filter((account) => account.role === 'QA_COORDINATOR')
-                : [];
+  async function deleteDepartment(dept) {
+    if(!window.confirm(`Delete department "${dept.name}"?`))return;
+    setSaving(true);setFeedback({type:'info',text:'Deleting…'});
+      try {
+      const res = await fetch(`${BASE_URL}/api/admin/departments/${dept.departmentId}`, { method: 'DELETE', headers: getAuthHeaders({ Accept: 'application/json' }) });
+      if(res.status===401){window.location.href='/login';return;} if(res.status===403){window.location.href='/admin/dashboard';return;}
+      if(res.status===409){const p=await res.json().catch(()=>null);setFeedback({type:'error',text:p?.message||'Department is in use.'});return;}
+      if(!res.ok){const p=await res.json().catch(()=>null);setFeedback({type:'error',text:p?.message||`Delete failed: ${res.status}`});return;}
+      setDepartments(c=>c.filter(i=>i.departmentId!==dept.departmentId));setFeedback({type:'success',text:'Department deleted.'});
+    } catch(e){setFeedback({type:'error',text:'Delete error: '+(e instanceof Error?e.message:String(e))});}
+    finally{setSaving(false);}
+  }
 
-            setDepartments(nextDepartments);
-            setQaCoordinators(coordinators);
-            setFeedback(showLoadedMessage
-                ? { type: 'success', text: `Loaded ${nextDepartments.length} department${nextDepartments.length === 1 ? '' : 's'}.` }
-                : { type: 'info', text: '' });
-        } catch (error) {
-            const details = error instanceof Error ? error.message : String(error);
-            setFeedback({ type: 'error', text: `Load error: ${details}` });
-        } finally {
-            setLoading(false);
-        }
-    }
+  if(!session?.token||!user)return null;
 
-    useEffect(() => {
-        if (!session?.token || !user) {
-            window.location.href = '/login';
-            return;
-        }
+  const fb = {info:{bg:'#F0F9FF',br:'#BAE6FD',c:'#0369A1'},success:{bg:'#ECFDF5',br:'#A7F3D0',c:'#065F46'},error:{bg:'#FEF2F2',br:'#FECACA',c:'#B91C1C'}}[feedback.type]||{bg:'#F0F9FF',br:'#BAE6FD',c:'#0369A1'};
 
-        if (user.role !== 'ADMIN') {
-            window.location.href = roleToPath(user.role);
-            return;
-        }
+  return (
+    <AdminShell activeMenu="departments">
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1.75rem',flexWrap:'wrap',gap:'1rem'}}>
+        <div>
+          <h1 style={{margin:'0 0 3px',fontSize:'1.55rem',fontWeight:800,color:C.text,letterSpacing:'-0.02em'}}>Department Management</h1>
+          <p style={{margin:0,fontSize:'13px',color:C.textSub}}>Create departments, assign QA coordinators, and maintain department ownership.</p>
+        </div>
+        <button onClick={()=>loadData(true)} style={{padding:'0.55rem 1.1rem',border:'none',borderRadius:'8px',background:C.primary,color:'#fff',fontSize:'13px',fontWeight:600,cursor:'pointer',fontFamily:font}}>↺ Refresh</button>
+      </div>
 
-        loadData();
-    }, [session, user]);
+      {feedback.text&&<div style={{padding:'0.75rem 1rem',borderRadius:'10px',border:`1px solid ${fb.br}`,background:fb.bg,color:fb.c,fontSize:'13px',fontWeight:500,marginBottom:'1.25rem'}}>{feedback.text}</div>}
 
-    const filteredDepartments = useMemo(() => {
-        const query = search.trim().toLowerCase();
+      {/* Stats */}
+      <div style={{display:'flex',gap:'1rem',marginBottom:'1.5rem',flexWrap:'wrap'}}>
+        {summary.map(s=>(
+          <div key={s.label} style={{...card,padding:'1.1rem',flex:1,minWidth:'150px',borderTop:`3px solid ${s.accent}`}}>
+            <div style={{fontSize:'1.7rem',fontWeight:800,color:C.text,lineHeight:1}}>{loading?'…':s.value}</div>
+            <div style={{fontSize:'11.5px',color:C.textSub,marginTop:'5px'}}>{s.label}</div>
+          </div>
+        ))}
+      </div>
 
-        if (!query) {
-            return departments;
-        }
+      {/* Create form */}
+      <div style={{...card,marginBottom:'1.25rem'}}>
+        <h2 style={{margin:'0 0 0.25rem',fontSize:'14px',fontWeight:700,color:C.text}}>Create Department</h2>
+        <p style={{margin:'0 0 1rem',fontSize:'12px',color:C.textSub}}>Add a new department and optionally assign its QA coordinator.</p>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr auto',gap:'0.75rem',alignItems:'end',flexWrap:'wrap'}}>
+          <div>
+            <label style={{display:'block',fontSize:'11px',fontWeight:700,color:C.textSub,marginBottom:'5px',textTransform:'uppercase',letterSpacing:'0.05em'}}>Department name</label>
+            <input value={createName} onChange={e=>setCreateName(e.target.value)} placeholder="Department name" style={inp}/>
+          </div>
+          <div>
+            <label style={{display:'block',fontSize:'11px',fontWeight:700,color:C.textSub,marginBottom:'5px',textTransform:'uppercase',letterSpacing:'0.05em'}}>QA Coordinators</label>
+            <select multiple value={createQaUserIds} onChange={e=>setCreateQaUserIds(readSelected(e))} style={{...inp,minHeight:'80px',cursor:'pointer'}}>
+              {qaCoordinators.map(c=><option key={c.id} value={String(c.id)}>{c.name} ({c.email})</option>)}
+            </select>
+            <div style={{fontSize:'10px',color:C.textMuted,marginTop:'3px'}}>Hold Ctrl/Cmd to select multiple</div>
+          </div>
+          <button onClick={createDepartment} disabled={saving} style={{padding:'0.6rem 1.1rem',border:'none',borderRadius:'8px',background:C.primary,color:'#fff',fontSize:'13px',fontWeight:600,cursor:saving?'not-allowed':'pointer',fontFamily:font,height:'38px',whiteSpace:'nowrap'}}>
+            {saving?'…':'Create department'}
+          </button>
+        </div>
+      </div>
 
-        return departments.filter((row) => (
-            String(row.name || '').toLowerCase().includes(query)
-            || (Array.isArray(row.qaCoordinators)
-                && row.qaCoordinators.some((item) => String(item.name || '').toLowerCase().includes(query)))
-        ));
-    }, [departments, search]);
+      {/* Dept table */}
+      <div style={{...card}}>
+        <div style={{display:'flex',gap:'0.75rem',alignItems:'center',marginBottom:'1rem',flexWrap:'wrap'}}>
+          <div style={{position:'relative',flex:1,minWidth:'200px'}}>
+            <span style={{position:'absolute',left:'0.75rem',top:'50%',transform:'translateY(-50%)',color:C.textMuted,fontSize:'13px'}}>🔍</span>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Find by department or coordinator…" style={{...inp,paddingLeft:'2.1rem',background:'#F8FAFC',width:'100%',boxSizing:'border-box'}}/>
+          </div>
+          <span style={{fontSize:'12px',color:C.textMuted,fontWeight:600}}>{filteredDepts.length} of {departments.length} departments</span>
+        </div>
 
-    const summary = useMemo(() => {
-        const total = departments.length;
-        const assigned = departments.filter((row) => Array.isArray(row.qaCoordinators) && row.qaCoordinators.length > 0).length;
-        const unassigned = total - assigned;
-        const available = qaCoordinators.length;
-
-        return [
-            { label: 'Total departments', value: total },
-            { label: 'Assigned coordinators', value: assigned },
-            { label: 'Unassigned departments', value: unassigned },
-            { label: 'Coordinator accounts', value: available },
-        ];
-    }, [departments, qaCoordinators]);
-
-    function beginEdit(row) {
-        setEditingDepartmentId(row.departmentId);
-        setForm({
-            name: row.name || '',
-            qaCoordinatorUserIds: Array.isArray(row.qaCoordinators)
-                ? row.qaCoordinators.map((item) => String(item.userId))
-                : [],
-        });
-        setFeedback({ type: 'info', text: '' });
-    }
-
-    function cancelEdit() {
-        setEditingDepartmentId(0);
-        setForm({ name: '', qaCoordinatorUserIds: [] });
-        setFeedback({ type: 'info', text: '' });
-    }
-
-    function readSelectedValues(event) {
-        return Array.from(event.target.selectedOptions, (option) => option.value);
-    }
-
-    async function createDepartment() {
-        if (!createName.trim()) {
-            setFeedback({ type: 'error', text: 'Department name is required.' });
-            return;
-        }
-
-        setSaving(true);
-        setFeedback({ type: 'info', text: 'Creating department...' });
-
-        try {
-            const response = await fetch('/api/admin/departments', {
-                method: 'POST',
-                headers: getAuthHeaders({
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                }),
-                body: JSON.stringify({
-                    name: createName.trim(),
-                    qaCoordinatorUserIds: createQaUserIds.map((value) => Number(value)),
-                }),
-            });
-
-            if (response.status === 401) {
-                window.location.href = '/login';
-                return;
-            }
-
-            if (response.status === 403) {
-                window.location.href = '/admin/dashboard';
-                return;
-            }
-
-            const payload = await response.json().catch(() => null);
-            if (!response.ok) {
-                setFeedback({ type: 'error', text: payload?.message || `Create failed: ${response.status}` });
-                return;
-            }
-
-            setCreateName('');
-            setCreateQaUserIds([]);
-            await loadData();
-            setFeedback({ type: 'success', text: 'Department created.' });
-        } catch (error) {
-            const details = error instanceof Error ? error.message : String(error);
-            setFeedback({ type: 'error', text: `Create error: ${details}` });
-        } finally {
-            setSaving(false);
-        }
-    }
-
-    async function saveEdit() {
-        if (!editingDepartmentId) {
-            return;
-        }
-
-        if (!form.name.trim()) {
-            setFeedback({ type: 'error', text: 'Department name is required.' });
-            return;
-        }
-
-        setSaving(true);
-        setFeedback({ type: 'info', text: 'Saving department...' });
-
-        try {
-            const response = await fetch(`/api/admin/departments/${editingDepartmentId}`, {
-                method: 'PUT',
-                headers: getAuthHeaders({
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                }),
-                body: JSON.stringify({
-                    name: form.name.trim(),
-                    qaCoordinatorUserIds: form.qaCoordinatorUserIds.map((value) => Number(value)),
-                }),
-            });
-
-            if (response.status === 401) {
-                window.location.href = '/login';
-                return;
-            }
-
-            if (response.status === 403) {
-                window.location.href = '/admin/dashboard';
-                return;
-            }
-
-            const payload = await response.json().catch(() => null);
-            if (!response.ok) {
-                setFeedback({ type: 'error', text: payload?.message || `Save failed: ${response.status}` });
-                return;
-            }
-
-            setEditingDepartmentId(0);
-            await loadData();
-            setFeedback({ type: 'success', text: 'Department updated.' });
-        } catch (error) {
-            const details = error instanceof Error ? error.message : String(error);
-            setFeedback({ type: 'error', text: `Save error: ${details}` });
-        } finally {
-            setSaving(false);
-        }
-    }
-
-    async function deleteDepartment(department) {
-        if (!window.confirm(`Delete department "${department.name}"?`)) {
-            return;
-        }
-
-        setSaving(true);
-        setFeedback({ type: 'info', text: 'Deleting department...' });
-
-        try {
-            const response = await fetch(`/api/admin/departments/${department.departmentId}`, {
-                method: 'DELETE',
-                headers: getAuthHeaders({ Accept: 'application/json' }),
-            });
-
-            if (response.status === 401) {
-                window.location.href = '/login';
-                return;
-            }
-
-            if (response.status === 403) {
-                window.location.href = '/admin/dashboard';
-                return;
-            }
-
-            if (response.status === 409) {
-                const payload = await response.json().catch(() => null);
-                setFeedback({ type: 'error', text: payload?.message || 'Department is in use and cannot be deleted.' });
-                return;
-            }
-
-            if (!response.ok) {
-                const payload = await response.json().catch(() => null);
-                setFeedback({ type: 'error', text: payload?.message || `Delete failed: ${response.status}` });
-                return;
-            }
-
-            setDepartments((current) => current.filter((item) => item.departmentId !== department.departmentId));
-            setFeedback({ type: 'success', text: 'Department deleted.' });
-        } catch (error) {
-            const details = error instanceof Error ? error.message : String(error);
-            setFeedback({ type: 'error', text: `Delete error: ${details}` });
-        } finally {
-            setSaving(false);
-        }
-    }
-
-    if (!session?.token || !user) {
-        return null;
-    }
-
-    return (
-        <AdminShell activeMenu="departments">
-            <div style={containerStyle()}>
-                <div style={headerStyle()}>
-                    <div>
-                        <h1 style={titleStyle()}>Department Management</h1>
-                        <p style={subtitleStyle()}>
-                            Create departments, assign QA coordinators, and maintain department ownership.
-                        </p>
-                    </div>
-                    <button type="button" onClick={() => loadData(true)} style={primaryButtonStyle()}>
-                        Refresh departments
-                    </button>
-                </div>
-
-                {feedback.text && <div style={bannerStyle(feedback.type)}>{feedback.text}</div>}
-
-                <div style={summaryGridStyle()}>
-                    {summary.map((item) => (
-                        <div key={item.label} style={summaryCardStyle()}>
-                            <div style={summaryValueStyle()}>{item.value}</div>
-                            <div style={summaryLabelStyle()}>{item.label}</div>
-                        </div>
-                    ))}
-                </div>
-
-                <div style={{ ...cardStyle(), marginBottom: '1.25rem' }}>
-                    <div style={{ marginBottom: '1rem' }}>
-                        <div style={{ fontSize: '15px', fontWeight: 800, color: '#111827' }}>Create department</div>
-                        <div style={{ marginTop: '0.25rem', fontSize: '12px', color: '#6B7280' }}>
-                            Add a department and optionally assign its QA coordinator immediately.
-                        </div>
-                    </div>
-                    <div style={createGridStyle()}>
+        <div style={{overflowX:'auto'}}>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:'13.5px',minWidth:'700px'}}>
+            <thead>
+              <tr style={{background:'#F8FAFC'}}>
+                {['Department','Coordinator','Assignment','Actions'].map(h=>(
+                  <th key={h} style={{padding:'10px 14px',textAlign:'left',fontSize:'11px',fontWeight:700,color:C.textMuted,textTransform:'uppercase',letterSpacing:'0.05em',borderBottom:`2px solid ${C.border}`,whiteSpace:'nowrap'}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredDepts.map((row,idx)=>{
+                const editing=editingDepartmentId===row.departmentId;
+                const coordinatorNames=Array.isArray(row.qaCoordinators)&&row.qaCoordinators.length>0?row.qaCoordinators.map(c=>c.name).join(', '):'No coordinator assigned';
+                const isAssigned=Array.isArray(row.qaCoordinators)&&row.qaCoordinators.length>0;
+                return (
+                  <tr key={row.departmentId} style={{background:idx%2===0?'#fff':'#FAFBFF'}}>
+                    <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,verticalAlign:'middle'}}>
+                      {editing?<input value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} style={{...inp,width:'200px'}}/> : (
                         <div>
-                            <label style={fieldLabelStyle()}>Department name</label>
-                            <input
-                                value={createName}
-                                onChange={(event) => setCreateName(event.target.value)}
-                                placeholder="Department name"
-                                style={fieldStyle()}
-                            />
+                          <div style={{fontWeight:700,color:C.text}}>{row.name}</div>
+                          <div style={{fontSize:'11px',color:C.textMuted}}>ID: {row.departmentId}</div>
                         </div>
-                        <div>
-                            <label style={fieldLabelStyle()}>QA coordinators</label>
-                            <select
-                                multiple
-                                value={createQaUserIds}
-                                onChange={(event) => setCreateQaUserIds(readSelectedValues(event))}
-                                style={multiSelectStyle()}>
-                                {qaCoordinators.map((item) => (
-                                    <option key={item.id} value={item.id}>{item.name} ({item.email})</option>
-                                ))}
-                            </select>
-                            <div style={{ marginTop: '0.35rem', fontSize: '12px', color: '#6B7280' }}>
-                                Selected coordinators will be moved into this department.
-                            </div>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={createDepartment}
-                            disabled={saving}
-                            style={{
-                                ...primaryButtonStyle(),
-                                opacity: saving ? 0.7 : 1,
-                                cursor: saving ? 'not-allowed' : 'pointer',
-                            }}>
-                            Create department
-                        </button>
-                    </div>
-                </div>
-
-                <div style={cardStyle()}>
-                    <div style={toolbarStyle()}>
-                        <div style={searchWrapStyle()}>
-                            <span style={{ color: '#6B7280', fontSize: '14px' }}>Search</span>
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={(event) => setSearch(event.target.value)}
-                                placeholder="Find by department or coordinator"
-                                style={searchInputStyle()}
-                            />
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#6B7280', fontWeight: 600 }}>
-                            {loading ? 'Loading departments...' : `${filteredDepartments.length} visible department${filteredDepartments.length === 1 ? '' : 's'}`}
-                        </div>
-                    </div>
-
-                    <div style={tableWrapStyle()}>
-                        <table style={tableStyle()}>
-                            <thead>
-                                <tr>
-                                    <th style={thStyle()}>Department</th>
-                                    <th style={thStyle()}>Coordinator</th>
-                                    <th style={thStyle()}>Assignment</th>
-                                    <th style={thStyle()}>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredDepartments.map((row) => {
-                                    const editing = editingDepartmentId === row.departmentId;
-
-                                    return (
-                                        <tr key={row.departmentId}>
-                                            <td style={tdStyle()}>
-                                                {editing ? (
-                                                    <input
-                                                        value={form.name}
-                                                        onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-                                                        style={fieldStyle()}
-                                                    />
-                                                ) : (
-                                                    <div>
-                                                        <div style={{ fontWeight: 800 }}>{row.name}</div>
-                                                        <div style={{ marginTop: '0.2rem', fontSize: '12px', color: '#6B7280' }}>
-                                                            Department ID: {row.departmentId}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td style={tdStyle()}>
-                                                {editing ? (
-                                                    <select
-                                                        multiple
-                                                        value={form.qaCoordinatorUserIds}
-                                                        onChange={(event) => setForm((prev) => ({ ...prev, qaCoordinatorUserIds: readSelectedValues(event) }))}
-                                                        style={multiSelectStyle()}>
-                                                        {qaCoordinators.map((item) => (
-                                                            <option key={item.id} value={item.id}>{item.name} ({item.email})</option>
-                                                        ))}
-                                                    </select>
-                                                ) : (
-                                                    <div>
-                                                        {Array.isArray(row.qaCoordinators) && row.qaCoordinators.length > 0 ? (
-                                                            row.qaCoordinators.map((item) => (
-                                                                <div key={item.userId} style={{ marginBottom: '0.2rem' }}>
-                                                                    <div style={{ fontWeight: 700 }}>{item.name}</div>
-                                                                    <div style={{ fontSize: '12px', color: '#6B7280' }}>{item.email}</div>
-                                                                </div>
-                                                            ))
-                                                        ) : (
-                                                            <div style={{ fontWeight: 700 }}>No coordinator assigned</div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td style={tdStyle()}>
-                                                <span style={coordinatorBadgeStyle(Array.isArray(row.qaCoordinators) && row.qaCoordinators.length > 0)}>
-                                                    {Array.isArray(row.qaCoordinators) && row.qaCoordinators.length > 0
-                                                        ? `${row.qaCoordinators.length} assigned`
-                                                        : 'Unassigned'}
-                                                </span>
-                                            </td>
-                                            <td style={tdStyle()}>
-                                                <div style={actionRowStyle()}>
-                                                    {!editing && (
-                                                        <button type="button" onClick={() => beginEdit(row)} style={inlineButtonStyle('default')}>
-                                                            Edit
-                                                        </button>
-                                                    )}
-                                                    {editing && (
-                                                        <>
-                                                            <button
-                                                                type="button"
-                                                                onClick={saveEdit}
-                                                                disabled={saving}
-                                                                style={{
-                                                                    ...inlineButtonStyle('primary'),
-                                                                    opacity: saving ? 0.7 : 1,
-                                                                    cursor: saving ? 'not-allowed' : 'pointer',
-                                                                }}>
-                                                                Save
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={cancelEdit}
-                                                                disabled={saving}
-                                                                style={{
-                                                                    ...inlineButtonStyle('danger'),
-                                                                    opacity: saving ? 0.7 : 1,
-                                                                    cursor: saving ? 'not-allowed' : 'pointer',
-                                                                }}>
-                                                                Cancel
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                    {!editing && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => deleteDepartment(row)}
-                                                            disabled={saving}
-                                                            style={{
-                                                                ...inlineButtonStyle('danger'),
-                                                                opacity: saving ? 0.7 : 1,
-                                                                cursor: saving ? 'not-allowed' : 'pointer',
-                                                            }}>
-                                                            Delete
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                                {!loading && filteredDepartments.length === 0 && (
-                                    <tr>
-                                        <td style={{ ...tdStyle(), textAlign: 'center', color: '#6B7280' }} colSpan={4}>
-                                            No departments match the current search.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </AdminShell>
-    );
+                      )}
+                    </td>
+                    <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,verticalAlign:'middle'}}>
+                      {editing?(
+                        <select multiple value={form.qaCoordinatorUserIds} onChange={e=>setForm(p=>({...p,qaCoordinatorUserIds:readSelected(e)}))} style={{...inp,minHeight:'72px',cursor:'pointer',width:'220px'}}>
+                          {qaCoordinators.map(c=><option key={c.id} value={String(c.id)}>{c.name}</option>)}
+                        </select>
+                      ):<span style={{fontSize:'13px',color:isAssigned?C.text:C.textMuted}}>{coordinatorNames}</span>}
+                    </td>
+                    <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,verticalAlign:'middle'}}>
+                      <span style={{display:'inline-block',padding:'2px 9px',borderRadius:'999px',fontSize:'11.5px',fontWeight:700,background:isAssigned?'#D1FAE5':'#FEF3C7',color:isAssigned?'#065F46':'#92400E'}}>{isAssigned?'Assigned':'Unassigned'}</span>
+                    </td>
+                    <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,verticalAlign:'middle'}}>
+                      <div style={{display:'flex',gap:'6px'}}>
+                        {!editing&&<button onClick={()=>beginEdit(row)} style={{padding:'5px 12px',border:'none',borderRadius:'6px',background:'#DBEAFE',color:'#1E40AF',fontSize:'12px',fontWeight:700,cursor:'pointer',fontFamily:font}}>Edit</button>}
+                        {editing&&<>
+                          <button onClick={saveEdit} disabled={saving} style={{padding:'5px 12px',border:'none',borderRadius:'6px',background:C.primary,color:'#fff',fontSize:'12px',fontWeight:700,cursor:saving?'not-allowed':'pointer',fontFamily:font}}>Save</button>
+                          <button onClick={cancelEdit} style={{padding:'5px 12px',border:`1px solid ${C.border}`,borderRadius:'6px',background:'#fff',color:C.textSub,fontSize:'12px',fontWeight:700,cursor:'pointer',fontFamily:font}}>Cancel</button>
+                        </>}
+                        {!editing&&<button onClick={()=>deleteDepartment(row)} disabled={saving} style={{padding:'5px 12px',border:'none',borderRadius:'6px',background:'#FEE2E2',color:'#991B1B',fontSize:'12px',fontWeight:700,cursor:'pointer',fontFamily:font}}>Delete</button>}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {!loading&&filteredDepts.length===0&&<tr><td colSpan={4} style={{padding:'2rem',textAlign:'center',color:C.textMuted,fontSize:'13px'}}>No departments found.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </AdminShell>
+  );
 }

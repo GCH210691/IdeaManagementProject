@@ -1,358 +1,165 @@
 import { useEffect, useMemo, useState } from 'react';
-import { canCreateIdeas, getAuthHeaders, getAuthSession } from '../shared/authStorage';
+import { canCreateIdeas, getAuthHeaders, getAuthSession, BASE_URL } from '../shared/authStorage';
 import StaffShell from '../shells/StaffShell';
+import { C, card, font } from '../shared/designTokens';
 
-function pageHeaderStyle() {
-    return {
-        marginBottom: '1rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '1rem',
-        flexWrap: 'wrap',
-    };
+function toSelectedIds(opts) { return Array.from(opts).filter(o=>o.selected).map(o=>Number(o.value)); }
+function fmtDT(v) { return v?new Date(v).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):''; }
+
+function swMessage(sw) {
+  if(!sw) return {text:'Loading submission window…',color:C.textSub};
+  if(sw.state==='open') return {text:`✅ Submission open · closes ${fmtDT(sw.ideaEndAt)}`,color:C.successDk,bg:C.successLt};
+  if(sw.state==='upcoming') return {text:`⏳ Upcoming · opens ${fmtDT(sw.ideaStartAt)}`,color:'#0369A1',bg:'#E0F2FE'};
+  if(sw.state==='closed') return {text:`🔒 Last window closed ${fmtDT(sw.ideaEndAt)}`,color:C.dangerDk,bg:C.dangerLt};
+  return {text:'No submission window configured.',color:C.textSub,bg:'#F1F5F9'};
 }
 
-function h1Style() {
-    return { margin: '0 0 0.25rem 0', fontSize: '1.5rem', fontWeight: 900, color: '#111827' };
-}
-
-function subStyle() {
-    return { margin: 0, fontSize: '13px', color: '#6B7280' };
-}
-
-function cardStyle() {
-    return {
-        maxWidth: '760px',
-        background: '#fff',
-        borderRadius: '12px',
-        border: '1px solid #F3F4F6',
-        padding: '1.4rem',
-    };
-}
-
-function inputStyle(multiline = false) {
-    return {
-        width: '100%',
-        minHeight: multiline ? '180px' : undefined,
-        boxSizing: 'border-box',
-        padding: '0.7rem 0.8rem',
-        borderRadius: '10px',
-        border: '1px solid #D1D5DB',
-        fontFamily: 'inherit',
-        fontSize: '13px',
-    };
-}
-
-function multiSelectStyle() {
-    return {
-        ...inputStyle(),
-        minHeight: '160px',
-    };
-}
-
-function actionButtonStyle(primary = false) {
-    return {
-        border: 'none',
-        borderRadius: '8px',
-        padding: '0.55rem 0.9rem',
-        fontSize: '12px',
-        fontWeight: 700,
-        cursor: 'pointer',
-        fontFamily: 'inherit',
-        color: primary ? '#fff' : '#111827',
-        background: primary ? '#2563EB' : '#E5E7EB',
-    };
-}
-
-function toSelectedIds(options) {
-    return Array.from(options)
-        .filter((option) => option.selected)
-        .map((option) => Number(option.value));
-}
-
-function formatDateTime(value) {
-    return value ? new Date(value).toLocaleString() : '';
-}
-
-function submissionWindowMessage(submissionWindow) {
-    if (!submissionWindow) {
-        return 'Loading submission window...';
-    }
-
-    if (submissionWindow.state === 'open') {
-        return `Submission ${submissionWindow.title || ''} is open from ${formatDateTime(submissionWindow.ideaStartAt)} until ${formatDateTime(submissionWindow.ideaEndAt)}.`;
-    }
-
-    if (submissionWindow.state === 'upcoming') {
-        return `Submission ${submissionWindow.title || ''} is not open yet. It opens from ${formatDateTime(submissionWindow.ideaStartAt)} until ${formatDateTime(submissionWindow.ideaEndAt)}.`;
-    }
-
-    if (submissionWindow.state === 'closed') {
-        return `Submission ${submissionWindow.title || ''} has ended. Wait till next submission opens.`;
-    }
-
-    return 'No submission window is available right now.';
-}
+const inp = {width:'100%',boxSizing:'border-box',padding:'0.65rem 0.85rem',borderRadius:'9px',border:`1.5px solid ${C.border}`,fontSize:'14px',color:C.text,fontFamily:font,outline:'none',transition:'border-color .15s, box-shadow .15s'};
+const Label = ({children}) => <label style={{display:'block',fontSize:'12px',fontWeight:600,color:C.textSub,marginBottom:'6px',textTransform:'uppercase',letterSpacing:'0.05em'}}>{children}</label>;
 
 export default function CreateIdeaPage() {
-    const session = useMemo(() => getAuthSession(), []);
-    const user = session?.user;
-    const [title, setTitle] = useState('');
-    const [content, setContent] = useState('');
-    const [isAnonymous, setIsAnonymous] = useState(false);
-    const [categoryOptions, setCategoryOptions] = useState([]);
-    const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
-    const [selectedFiles, setSelectedFiles] = useState([]);
-    const [submissionWindow, setSubmissionWindow] = useState(null);
-    const [message, setMessage] = useState('');
-    const [loading, setLoading] = useState(false);
+  const session = useMemo(()=>getAuthSession(),[]);
+  const user = session?.user;
+  const [title,setTitle]=useState('');
+  const [content,setContent]=useState('');
+  const [isAnonymous,setIsAnonymous]=useState(false);
+  const [selectedCategoryIds,setSelectedCategoryIds]=useState([]);
+  const [files,setFiles]=useState([]);
+  const [categories,setCategories]=useState([]);
+  const [submissionWindow,setSubmissionWindow]=useState(null);
+  const [message,setMessage]=useState('');
+  const [submitting,setSubmitting]=useState(false);
 
-    useEffect(() => {
-        if (!session?.token || !user) {
-            window.location.href = '/login';
-            return;
-        }
-
-        if (!canCreateIdeas(user)) {
-            window.location.href = '/dashboard';
-            return;
-        }
-
-        let active = true;
-
-        async function loadPageData() {
-            try {
-                const [categoriesResponse, submissionWindowResponse] = await Promise.all([
-                    fetch('/api/categories', {
-                        headers: getAuthHeaders({ Accept: 'application/json' }),
-                    }),
-                    fetch('/api/ideas/submission-window', {
-                        headers: getAuthHeaders({ Accept: 'application/json' }),
-                    }),
-                ]);
-
-                if (categoriesResponse.status === 401 || submissionWindowResponse.status === 401) {
-                    window.location.href = '/login';
-                    return;
-                }
-
-                if (!categoriesResponse.ok) {
-                    setMessage(`Unable to load categories: ${categoriesResponse.status}`);
-                    return;
-                }
-
-                if (!submissionWindowResponse.ok) {
-                    setMessage(`Unable to load submission window: ${submissionWindowResponse.status}`);
-                    return;
-                }
-
-                const categoriesData = await categoriesResponse.json();
-                const submissionWindowData = await submissionWindowResponse.json();
-                if (!active) {
-                    return;
-                }
-
-                setCategoryOptions(Array.isArray(categoriesData) ? categoriesData : []);
-                setSubmissionWindow(submissionWindowData || null);
-            } catch (error) {
-                const details = error instanceof Error ? error.message : String(error);
-                setMessage('Load error: ' + details);
-            }
-        }
-
-        loadPageData();
-
-        return () => {
-            active = false;
-        };
-    }, [session, user]);
-
-    const submissionOpen = submissionWindow?.state === 'open';
-    const formDisabled = loading || !submissionOpen;
-
-    async function submit(event) {
-        event.preventDefault();
-
-        if (!submissionOpen) {
-            setMessage('No idea submission window is open right now.');
-            return;
-        }
-
-        if (!title.trim() || !content.trim()) {
-            setMessage('Title and content are required.');
-            return;
-        }
-
-        setLoading(true);
-        setMessage('Creating idea...');
-
+  useEffect(()=>{
+    if(!session?.token||!user){window.location.href='/login';return;}
+    if(!canCreateIdeas(user)){window.location.href='/ideas';return;}
+    let active=true;
+    async function load() {
         try {
-            const formData = new FormData();
-            formData.append('title', title.trim());
-            formData.append('content', content.trim());
-            formData.append('isAnonymous', String(isAnonymous));
-
-            selectedCategoryIds.forEach((categoryId) => {
-                formData.append('categoryIds', String(categoryId));
-            });
-
-            selectedFiles.forEach((file) => {
-                formData.append('files', file);
-            });
-
-            const response = await fetch('/api/ideas', {
-                method: 'POST',
-                headers: getAuthHeaders({ Accept: 'application/json' }),
-                body: formData,
-            });
-
-            if (response.status === 401) {
-                window.location.href = '/login';
-                return;
-            }
-
-            if (response.status === 403) {
-                setMessage('You are not allowed to create ideas.');
-                return;
-            }
-
-            const payload = await response.json().catch(() => null);
-            if (response.status === 400) {
-                setMessage(payload?.message || 'Invalid idea data.');
-                return;
-            }
-
-            if (response.status === 409) {
-                if (payload?.submissionWindow) {
-                    setSubmissionWindow(payload.submissionWindow);
-                }
-
-                setMessage(payload?.message || 'No idea submission window is open right now.');
-                return;
-            }
-
-            if (!response.ok) {
-                setMessage(`Create idea failed: ${response.status}`);
-                return;
-            }
-
-            window.location.href = '/ideas';
-        } catch (error) {
-            const details = error instanceof Error ? error.message : String(error);
-            setMessage('Create error: ' + details);
-        } finally {
-            setLoading(false);
-        }
+        const [cr, sr] = await Promise.all([fetch(`${BASE_URL}/api/categories`, { headers: getAuthHeaders({ Accept: 'application/json' }) }), fetch(`${BASE_URL}/api/ideas/submission-window`, { headers: getAuthHeaders({ Accept: 'application/json' }) })]);
+        if(cr.status===401||sr.status===401){window.location.href='/login';return;}
+        if(!active)return;
+        setCategories(cr.ok?await cr.json().then(d=>Array.isArray(d)?d:[]):[]);
+        setSubmissionWindow(sr.ok?await sr.json():null);
+      }catch(e){setMessage('Load error: '+(e instanceof Error?e.message:String(e)));}
     }
+    load();
+    return()=>{active=false;};
+  },[session,user]);
 
-    if (!session?.token || !user || !canCreateIdeas(user)) {
-        return null;
-    }
+  const submissionOpen = submissionWindow?.state==='open';
+  const swInfo = swMessage(submissionWindow);
 
-    const statusText = submissionWindowMessage(submissionWindow);
+  async function submit(e) {
+    e.preventDefault();
+    if(!submissionOpen){setMessage('No submission window is open.');return;}
+    if(!title.trim()||!content.trim()){setMessage('Title and content are required.');return;}
+    setSubmitting(true);setMessage('');
+    try {
+      const fd=new FormData();
+      fd.append('title',title.trim());fd.append('content',content.trim());fd.append('isAnonymous',isAnonymous);
+      selectedCategoryIds.forEach(id=>fd.append('categoryIds',id));
+      files.forEach(f => fd.append('files', f));
+      const res = await fetch(`${BASE_URL}/api/ideas`, { method: 'POST', headers: getAuthHeaders(), body: fd });
+      if(res.status===401){window.location.href='/login';return;}
+      const payload=await res.json().catch(()=>null);
+      if(res.status===409){setSubmissionWindow(p=>p?{...p,state:'closed'}:p);setMessage(payload?.message||'Submission window closed.');return;}
+      if(!res.ok){setMessage(payload?.message||`Failed: ${res.status}`);return;}
+      window.location.href='/ideas/'+payload.ideaId;
+    }catch(e){setMessage('Submit error: '+(e instanceof Error?e.message:String(e)));}
+    finally{setSubmitting(false);}
+  }
 
-    return (
-        <StaffShell activeMenu="create" footerText="Create a new idea">
-            <div style={pageHeaderStyle()}>
-                <div>
-                    <h1 style={h1Style()}>Create Idea</h1>
-                    <p style={subStyle()}>Submit a new idea to the system.</p>
-                </div>
+  if(!session?.token||!user)return null;
+
+  return (
+    <StaffShell activeMenu="create">
+      <div style={{maxWidth:'720px'}}>
+        <div style={{marginBottom:'1.5rem'}}>
+          <h1 style={{margin:'0 0 4px',fontSize:'1.55rem',fontWeight:800,color:C.text,letterSpacing:'-0.02em'}}>Submit an Idea</h1>
+          <p style={{margin:0,fontSize:'13px',color:C.textSub}}>Share your idea with the community during the active submission window.</p>
+        </div>
+
+        {/* Submission window banner */}
+        {submissionWindow && (
+          <div style={{padding:'0.75rem 1rem',borderRadius:'10px',border:`1px solid ${swInfo.bg||C.border}`,background:swInfo.bg||'#F8FAFC',color:swInfo.color,fontSize:'13px',fontWeight:500,marginBottom:'1.25rem'}}>
+            {swInfo.text}
+          </div>
+        )}
+
+        <div style={{...card}}>
+          <form onSubmit={submit}>
+            {/* Title */}
+            <div style={{marginBottom:'1.1rem'}}>
+              <Label>Title *</Label>
+              <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Give your idea a clear, concise title" disabled={submitting||!submissionOpen}
+                style={{...inp,background:!submissionOpen?'#F8FAFC':'#fff'}}
+                onFocus={e=>{e.target.style.borderColor=C.primary;e.target.style.boxShadow=`0 0 0 3px ${C.primaryLt}`;}}
+                onBlur={e=>{e.target.style.borderColor=C.border;e.target.style.boxShadow='none';}}/>
             </div>
 
-            <section style={cardStyle()}>
-                <p>{statusText}</p>
+            {/* Content */}
+            <div style={{marginBottom:'1.1rem'}}>
+              <Label>Content *</Label>
+              <textarea value={content} onChange={e=>setContent(e.target.value)} placeholder="Describe your idea in detail…" disabled={submitting||!submissionOpen} rows={6}
+                style={{...inp,minHeight:'150px',resize:'vertical',background:!submissionOpen?'#F8FAFC':'#fff',lineHeight:1.65}}
+                onFocus={e=>{e.target.style.borderColor=C.primary;e.target.style.boxShadow=`0 0 0 3px ${C.primaryLt}`;}}
+                onBlur={e=>{e.target.style.borderColor=C.border;e.target.style.boxShadow='none';}}/>
+            </div>
 
-                <form onSubmit={submit}>
-                    <p>
-                        <label>
-                            <span style={{ display: 'block', marginBottom: '0.45rem', fontSize: '12px', fontWeight: 700, color: '#6B7280' }}>Title</span>
-                            <input
-                                style={inputStyle()}
-                                value={title}
-                                onChange={(event) => setTitle(event.target.value)}
-                                disabled={formDisabled}
-                            />
-                        </label>
-                    </p>
+            {/* Categories */}
+            {categories.length>0 && (
+              <div style={{marginBottom:'1.1rem'}}>
+                <Label>Categories <span style={{fontWeight:400,textTransform:'none',fontSize:'11px',color:C.textMuted}}>(hold Ctrl/Cmd for multiple)</span></Label>
+                <select multiple value={selectedCategoryIds.map(String)}
+                  onChange={e=>setSelectedCategoryIds(toSelectedIds(e.target))}
+                  disabled={submitting||!submissionOpen}
+                  style={{...inp,minHeight:'100px',cursor:'pointer',background:!submissionOpen?'#F8FAFC':'#fff'}}>
+                  {categories.map(c=><option key={c.categoryId} value={c.categoryId}>{c.name}</option>)}
+                </select>
+              </div>
+            )}
 
-                    <p>
-                        <label>
-                            <span style={{ display: 'block', marginBottom: '0.45rem', fontSize: '12px', fontWeight: 700, color: '#6B7280' }}>Content</span>
-                            <textarea
-                                style={inputStyle(true)}
-                                value={content}
-                                onChange={(event) => setContent(event.target.value)}
-                                disabled={formDisabled}
-                            />
-                        </label>
-                    </p>
-
-                    <p>
-                        <label>
-                            <span style={{ display: 'block', marginBottom: '0.45rem', fontSize: '12px', fontWeight: 700, color: '#6B7280' }}>Categories</span>
-                            <select
-                                multiple
-                                value={selectedCategoryIds.map(String)}
-                                onChange={(event) => setSelectedCategoryIds(toSelectedIds(event.target.options))}
-                                style={multiSelectStyle()}
-                                disabled={formDisabled}>
-                                {categoryOptions.map((category) => (
-                                    <option key={category.categoryId} value={category.categoryId}>{category.name}</option>
-                                ))}
-                            </select>
-                        </label>
-                        <span style={{ display: 'block', marginTop: '0.35rem', fontSize: '12px', color: '#6B7280' }}>
-                            Hold Ctrl or Command to select multiple categories.
-                        </span>
-                    </p>
-
-                    <p>
-                        <label>
-                            <span style={{ display: 'block', marginBottom: '0.45rem', fontSize: '12px', fontWeight: 700, color: '#6B7280' }}>Attachments</span>
-                            <input
-                                type="file"
-                                multiple
-                                onChange={(event) => setSelectedFiles(Array.from(event.target.files ?? []))}
-                                disabled={formDisabled}
-                            />
-                        </label>
-                        {selectedFiles.length > 0 && (
-                            <span style={{ display: 'block', marginTop: '0.35rem', fontSize: '12px', color: '#6B7280' }}>
-                                {selectedFiles.length} file(s) selected.
-                            </span>
-                        )}
-                    </p>
-
-                    <p>
-                        <label style={{ fontSize: '13px', color: '#374151' }}>
-                            <input
-                                type="checkbox"
-                                checked={isAnonymous}
-                                onChange={(event) => setIsAnonymous(event.target.checked)}
-                                disabled={formDisabled}
-                            />
-                            {' '}Submit anonymously
-                        </label>
-                    </p>
-
-                    <p style={{ marginBottom: 0, display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                        <button type="submit" disabled={formDisabled} style={{ ...actionButtonStyle(true), opacity: formDisabled ? 0.6 : 1 }}>
-                            {loading ? 'Saving...' : 'Create idea'}
-                        </button>
-                        <button type="button" onClick={() => { window.location.href = '/ideas'; }} style={actionButtonStyle()}>
-                            Back to idea list
-                        </button>
-                    </p>
-                </form>
-
-                {message && (
-                    <p style={{ color: message.toLowerCase().includes('error') || message.toLowerCase().includes('failed') || message.toLowerCase().includes('invalid') || message.toLowerCase().includes('not allowed') ? '#B91C1C' : '#555', marginTop: '1rem' }}>
-                        {message}
-                    </p>
+            {/* Files */}
+            <div style={{marginBottom:'1.1rem'}}>
+              <Label>Attachments <span style={{fontWeight:400,textTransform:'none',fontSize:'11px',color:C.textMuted}}>(optional)</span></Label>
+              <div style={{border:`1.5px dashed ${C.border}`,borderRadius:'9px',padding:'1.25rem',background:'#F8FAFC',textAlign:'center'}}>
+                <input type="file" multiple onChange={e=>setFiles(Array.from(e.target.files||[]))} disabled={submitting||!submissionOpen}
+                  style={{display:'block',margin:'0 auto',fontSize:'13px',color:C.textSub,cursor:'pointer'}}/>
+                {files.length>0 && (
+                  <div style={{marginTop:'0.75rem',display:'flex',flexWrap:'wrap',gap:'6px',justifyContent:'center'}}>
+                    {files.map((f,i)=><span key={i} style={{fontSize:'11.5px',padding:'2px 9px',borderRadius:'999px',background:C.primaryLt,color:C.primaryDk,fontWeight:600}}>📎 {f.name}</span>)}
+                  </div>
                 )}
-            </section>
-        </StaffShell>
-    );
+              </div>
+            </div>
+
+            {/* Anonymous toggle */}
+            <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'1.5rem',padding:'0.75rem',borderRadius:'9px',background:'#F8FAFC',border:`1px solid ${C.border}`}}>
+              <div onClick={()=>!submitting&&submissionOpen&&setIsAnonymous(!isAnonymous)}
+                style={{width:'40px',height:'22px',borderRadius:'11px',background:isAnonymous?C.primary:'#CBD5E1',cursor:submissionOpen?'pointer':'not-allowed',position:'relative',transition:'background .2s',flexShrink:0}}>
+                <div style={{position:'absolute',top:'3px',left:isAnonymous?'21px':'3px',width:'16px',height:'16px',borderRadius:'50%',background:'#fff',transition:'left .2s',boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}/>
+              </div>
+              <div>
+                <div style={{fontSize:'13px',fontWeight:600,color:C.text}}>Post anonymously</div>
+                <div style={{fontSize:'11.5px',color:C.textSub}}>Your name will be hidden from other users</div>
+              </div>
+            </div>
+
+            {message && (
+              <div style={{padding:'0.75rem 1rem',borderRadius:'9px',border:'1px solid #FECACA',background:'#FEF2F2',color:'#B91C1C',fontSize:'13px',marginBottom:'1rem'}}>⚠ {message}</div>
+            )}
+
+            <div style={{display:'flex',gap:'0.75rem',justifyContent:'flex-end'}}>
+              <button type="button" onClick={()=>window.history.back()} style={{padding:'0.65rem 1.2rem',border:`1px solid ${C.border}`,borderRadius:'9px',background:'#fff',color:C.textSub,fontSize:'13.5px',fontWeight:600,cursor:'pointer',fontFamily:font}}>Cancel</button>
+              <button type="submit" disabled={submitting||!submissionOpen}
+                style={{padding:'0.65rem 1.4rem',border:'none',borderRadius:'9px',background:submissionOpen?C.primary:'#CBD5E1',color:'#fff',fontSize:'13.5px',fontWeight:700,cursor:submissionOpen&&!submitting?'pointer':'not-allowed',fontFamily:font,boxShadow:submissionOpen?`0 2px 8px ${C.primary}44`:undefined}}>
+                {submitting?'Submitting…':'Submit Idea →'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </StaffShell>
+  );
 }

@@ -12,6 +12,7 @@ import AdminDashboard from './admin/AdminDashboard.jsx';
 import AdminAccountsPage from './admin/AdminAccountsPage.jsx';
 import AdminDepartmentsPage from './admin/AdminDepartmentsPage.jsx';
 import AdminClosureManagementPage from './admin/AdminClosureManagementPage.jsx';
+import AdminIdeaManagementPage from './AdminIdeaManagementPage.jsx';
 import MyIdeasPage from './ideas/MyIdeasPage.jsx';
 import DepartmentIdeasPage from './DepartmentIdeasPage.jsx';
 import CategoryListPage from './qaManager/CategoryListPage.jsx';
@@ -36,6 +37,8 @@ if (path === '/register') {
     Root = AdminDepartmentsPage;
 } else if (path === '/admin/closure-periods') {
     Root = AdminClosureManagementPage;
+} else if (path === '/admin/idea-management') {
+    Root = AdminIdeaManagementPage;
 } else if (path === '/staff/dashboard') {
     Root = Dashboard;
 } else if (path === '/staff/my-ideas') {

@@ -1,633 +1,268 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
+import { BASE_URL, getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
 import AdminShell from '../shells/AdminShell';
+import { C, card, font } from '../shared/designTokens';
 
-function formatDateTime(value) {
-    return value ? new Date(value).toLocaleString() : '';
-}
+function fmtDT(v) { return v ? new Date(v).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'; }
+function toLocal(v) { if(!v)return''; const d=new Date(v); return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,16); }
 
-function toDateTimeLocalValue(value) {
-    if (!value) {
-        return '';
-    }
+const inp = { width:'100%',boxSizing:'border-box',padding:'0.5rem 0.7rem',borderRadius:'7px',border:`1.5px solid ${C.border}`,fontSize:'13px',color:C.text,fontFamily:font,outline:'none' };
+const btnPrimary = {padding:'0.55rem 1rem',border:'none',borderRadius:'7px',background:C.primary,color:'#fff',fontSize:'12.5px',fontWeight:600,cursor:'pointer',fontFamily:font};
+const btnSecondary = {padding:'0.55rem 1rem',border:`1px solid ${C.border}`,borderRadius:'7px',background:'#fff',color:C.textSub,fontSize:'12.5px',fontWeight:600,cursor:'pointer',fontFamily:font};
+const btnDanger = {padding:'4px 10px',border:'none',borderRadius:'6px',background:'#FEE2E2',color:'#991B1B',fontSize:'12px',fontWeight:700,cursor:'pointer',fontFamily:font};
 
-    const date = new Date(value);
-    const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
-    return localDate.toISOString().slice(0, 16);
-}
+const emptyCP = {academicYearId:'',title:'',ideaStartAt:'',ideaEndAt:'',commentEndAt:''};
 
 export default function AdminClosureManagementPage() {
-    const session = useMemo(() => getAuthSession(), []);
-    const user = session?.user;
+  const session = useMemo(()=>getAuthSession(),[]);
+  const user = session?.user;
+  const [academicYears,setAcademicYears]=useState([]);
+  const [closurePeriods,setClosurePeriods]=useState([]);
+  const [message,setMessage]=useState('Loading…');
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [newAcademicYearName,setNewAcademicYearName]=useState('');
+  const [editingAYId,setEditingAYId]=useState(0);
+  const [editingAYName,setEditingAYName]=useState('');
+  const [newCP,setNewCP]=useState(emptyCP);
+  const [editingCPId,setEditingCPId]=useState(0);
+  const [editingCP,setEditingCP]=useState(emptyCP);
 
-    const [academicYears, setAcademicYears] = useState([]);
-    const [closurePeriods, setClosurePeriods] = useState([]);
-    const [message, setMessage] = useState('Loading closure management data...');
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
+  async function loadData(msg='') {
+    setLoading(true);
+      try {
+      const [ar, cr] = await Promise.all([fetch(`${BASE_URL}/api/admin/academic-years`, { headers: getAuthHeaders({ Accept: 'application/json' }) }), fetch(`${BASE_URL}/api/admin/closure-periods`, { headers: getAuthHeaders({ Accept: 'application/json' }) })]);
+      if(ar.status===401||cr.status===401){window.location.href='/login';return;}
+      if(ar.status===403||cr.status===403){window.location.href='/admin/dashboard';return;}
+      if(!ar.ok||!cr.ok){setMessage(`Load failed`);return;}
+      setAcademicYears(await ar.json().then(d=>Array.isArray(d)?d:[]));
+      setClosurePeriods(await cr.json().then(d=>Array.isArray(d)?d:[]));
+      setMessage(msg);
+    } catch(e){setMessage('Load error: '+(e instanceof Error?e.message:String(e)));}
+    finally{setLoading(false);}
+  }
 
-    const [newAcademicYearName, setNewAcademicYearName] = useState('');
-    const [editingAcademicYearId, setEditingAcademicYearId] = useState(0);
-    const [editingAcademicYearName, setEditingAcademicYearName] = useState('');
+  useEffect(()=>{ if(!session?.token||!user){window.location.href='/login';return;} if(user.role!=='ADMIN'){window.location.href=roleToPath(user.role);return;} loadData(); },[session,user]);
 
-    const [newClosurePeriod, setNewClosurePeriod] = useState({
-        academicYearId: '',
-        title: '',
-        ideaStartAt: '',
-        ideaEndAt: '',
-        commentEndAt: '',
-    });
-    const [editingClosurePeriodId, setEditingClosurePeriodId] = useState(0);
-    const [editingClosurePeriod, setEditingClosurePeriod] = useState({
-        academicYearId: '',
-        title: '',
-        ideaStartAt: '',
-        ideaEndAt: '',
-        commentEndAt: '',
-    });
+  async function createAcademicYear() {
+    if(!newAcademicYearName.trim()){setMessage('Academic year name is required.');return;}
+    setSaving(true);setMessage('Creating…');
+      try {
+      const res = await fetch(`${BASE_URL}/api/admin/academic-years`, { method: 'POST', headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }), body: JSON.stringify({ yearName: newAcademicYearName.trim() }) });
+      if(res.status===401){window.location.href='/login';return;}
+      const p=await res.json().catch(()=>null);
+      if(!res.ok){setMessage(p?.message||`Create failed: ${res.status}`);return;}
+      setNewAcademicYearName('');await loadData('Academic year created.');
+    }catch(e){setMessage('Error: '+(e instanceof Error?e.message:String(e)));}
+    finally{setSaving(false);}
+  }
 
-    async function loadData(successMessage = '') {
-        setLoading(true);
+  async function saveAcademicYear(id) {
+    if(!editingAYName.trim()){setMessage('Name is required.');return;}
+    setSaving(true);setMessage('Saving…');
+      try {
+      const res = await fetch(`${BASE_URL}/api/admin/academic-years/${id}`, { method: 'PUT', headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }), body: JSON.stringify({ yearName: editingAYName.trim() }) });
+      if(res.status===401){window.location.href='/login';return;}
+      const p=await res.json().catch(()=>null);
+      if(!res.ok){setMessage(p?.message||`Save failed: ${res.status}`);return;}
+      setEditingAYId(0);setEditingAYName('');await loadData('Academic year updated.');
+    }catch(e){setMessage('Error: '+(e instanceof Error?e.message:String(e)));}
+    finally{setSaving(false);}
+  }
 
-        try {
-            const [academicYearsResponse, closurePeriodsResponse] = await Promise.all([
-                fetch('/api/admin/academic-years', {
-                    headers: getAuthHeaders({ Accept: 'application/json' }),
-                }),
-                fetch('/api/admin/closure-periods', {
-                    headers: getAuthHeaders({ Accept: 'application/json' }),
-                }),
-            ]);
+  async function deleteAcademicYear(ay) {
+    if(!window.confirm(`Delete "${ay.yearName}"?`))return;
+    setSaving(true);setMessage('Deleting…');
+      try {
+      const res = await fetch(`${BASE_URL}/api/admin/academic-years/${ay.academicYearId}`, { method: 'DELETE', headers: getAuthHeaders({ Accept: 'application/json' }) });
+      if(res.status===401){window.location.href='/login';return;}
+      const p=await res.json().catch(()=>null);
+      if(!res.ok){setMessage(p?.message||`Delete failed: ${res.status}`);return;}
+      await loadData('Academic year deleted.');
+    }catch(e){setMessage('Error: '+(e instanceof Error?e.message:String(e)));}
+    finally{setSaving(false);}
+  }
 
-            if (academicYearsResponse.status === 401 || closurePeriodsResponse.status === 401) {
-                window.location.href = '/login';
-                return;
-            }
+  async function createClosurePeriod() {
+    if(!newCP.academicYearId||!newCP.title.trim()||!newCP.ideaStartAt||!newCP.ideaEndAt||!newCP.commentEndAt){setMessage('All closure period fields are required.');return;}
+    setSaving(true);setMessage('Creating…');
+      try {
+      const res = await fetch(`${BASE_URL}/api/admin/closure-periods`, { method: 'POST', headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }), body: JSON.stringify({ academicYearId: Number(newCP.academicYearId), title: newCP.title.trim(), ideaStartAt: newCP.ideaStartAt, ideaEndAt: newCP.ideaEndAt, commentEndAt: newCP.commentEndAt }) });
+      if(res.status===401){window.location.href='/login';return;}
+      const p=await res.json().catch(()=>null);
+      if(!res.ok){setMessage(p?.message||`Create failed: ${res.status}`);return;}
+      setNewCP(emptyCP);await loadData('Closure period created.');
+    }catch(e){setMessage('Error: '+(e instanceof Error?e.message:String(e)));}
+    finally{setSaving(false);}
+  }
 
-            if (academicYearsResponse.status === 403 || closurePeriodsResponse.status === 403) {
-                window.location.href = '/admin/dashboard';
-                return;
-            }
+  async function saveClosurePeriod(id) {
+    if(!editingCP.academicYearId||!editingCP.title.trim()||!editingCP.ideaStartAt||!editingCP.ideaEndAt||!editingCP.commentEndAt){setMessage('All fields are required.');return;}
+    setSaving(true);setMessage('Saving…');
+      try {
+      const res = await fetch(`${BASE_URL}/api/admin/closure-periods/${id}`, { method: 'PUT', headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }), body: JSON.stringify({ academicYearId: Number(editingCP.academicYearId), title: editingCP.title.trim(), ideaStartAt: editingCP.ideaStartAt, ideaEndAt: editingCP.ideaEndAt, commentEndAt: editingCP.commentEndAt }) });
+      if(res.status===401){window.location.href='/login';return;}
+      const p=await res.json().catch(()=>null);
+      if(!res.ok){setMessage(p?.message||`Save failed: ${res.status}`);return;}
+      setEditingCPId(0);setEditingCP(emptyCP);await loadData('Closure period updated.');
+    }catch(e){setMessage('Error: '+(e instanceof Error?e.message:String(e)));}
+    finally{setSaving(false);}
+  }
 
-            if (!academicYearsResponse.ok || !closurePeriodsResponse.ok) {
-                setMessage(`Load failed: academicYears=${academicYearsResponse.status}, closurePeriods=${closurePeriodsResponse.status}`);
-                return;
-            }
+  async function deleteClosurePeriod(cp) {
+    if(!window.confirm(`Delete "${cp.title}"?`))return;
+    setSaving(true);setMessage('Deleting…');
+      try {
+      const res = await fetch(`${BASE_URL}/api/admin/closure-periods/${cp.closurePeriodId}`, { method: 'DELETE', headers: getAuthHeaders({ Accept: 'application/json' }) });
+      if(res.status===401){window.location.href='/login';return;}
+      const p=await res.json().catch(()=>null);
+      if(!res.ok){setMessage(p?.message||`Delete failed: ${res.status}`);return;}
+      await loadData('Closure period deleted.');
+    }catch(e){setMessage('Error: '+(e instanceof Error?e.message:String(e)));}
+    finally{setSaving(false);}
+  }
 
-            const academicYearsData = await academicYearsResponse.json();
-            const closurePeriodsData = await closurePeriodsResponse.json();
+  if(!session?.token||!user)return null;
 
-            setAcademicYears(Array.isArray(academicYearsData) ? academicYearsData : []);
-            setClosurePeriods(Array.isArray(closurePeriodsData) ? closurePeriodsData : []);
-            setMessage(successMessage);
-        } catch (error) {
-            const details = error instanceof Error ? error.message : String(error);
-            setMessage('Load error: ' + details);
-        } finally {
-            setLoading(false);
-        }
-    }
+  const msgIsErr = message&&!message.includes('…')&&!message.includes('created')&&!message.includes('updated')&&!message.includes('deleted');
+  const msgIsOk = message&&(message.includes('created')||message.includes('updated')||message.includes('deleted'));
 
-    useEffect(() => {
-        if (!session?.token || !user) {
-            window.location.href = '/login';
-            return;
-        }
+  return (
+    <AdminShell activeMenu="closure-periods">
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1.75rem',flexWrap:'wrap',gap:'1rem'}}>
+        <div>
+          <h1 style={{margin:'0 0 3px',fontSize:'1.55rem',fontWeight:800,color:C.text,letterSpacing:'-0.02em'}}>Closure Date Management</h1>
+          <p style={{margin:0,fontSize:'13px',color:C.textSub}}>Manage academic years and closure periods for idea submission and commenting.</p>
+        </div>
+        <button onClick={()=>loadData('Data refreshed.')} disabled={loading||saving} style={btnPrimary}>↺ Refresh</button>
+      </div>
 
-        if (user.role !== 'ADMIN') {
-            window.location.href = roleToPath(user.role);
-            return;
-        }
+      {message&&<div style={{padding:'0.75rem 1rem',borderRadius:'10px',border:`1px solid ${msgIsErr?'#FECACA':msgIsOk?'#A7F3D0':'#BAE6FD'}`,background:msgIsErr?'#FEF2F2':msgIsOk?'#ECFDF5':'#F0F9FF',color:msgIsErr?'#B91C1C':msgIsOk?'#065F46':'#0369A1',fontSize:'13px',fontWeight:500,marginBottom:'1.25rem'}}>{message}</div>}
 
-        loadData();
-    }, [session, user]);
+      {/* ── Academic Years ── */}
+      <div style={{...card,marginBottom:'1.25rem'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1.1rem',flexWrap:'wrap',gap:'0.75rem'}}>
+          <h2 style={{margin:0,fontSize:'14px',fontWeight:700,color:C.text}}>📚 Academic Years</h2>
+          <div style={{display:'flex',gap:'0.5rem',alignItems:'center'}}>
+            <input value={newAcademicYearName} onChange={e=>setNewAcademicYearName(e.target.value)} placeholder="e.g. 2025–2026" disabled={saving} style={{...inp,width:'180px'}}/>
+            <button onClick={createAcademicYear} disabled={saving} style={btnPrimary}>+ Create</button>
+          </div>
+        </div>
+        <div style={{overflowX:'auto'}}>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:'13px',minWidth:'400px'}}>
+            <thead>
+              <tr style={{background:'#F8FAFC'}}>
+                {['Name','Closure Periods','Actions'].map(h=><th key={h} style={{padding:'8px 12px',textAlign:'left',fontSize:'10.5px',fontWeight:700,color:C.textMuted,textTransform:'uppercase',letterSpacing:'0.05em',borderBottom:`2px solid ${C.border}`}}>{h}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {academicYears.map((ay,i)=>(
+                <tr key={ay.academicYearId} style={{background:i%2===0?'#fff':'#FAFBFF'}}>
+                  <td style={{padding:'10px 12px',borderBottom:`1px solid ${C.border}`}}>
+                    {editingAYId===ay.academicYearId
+                      ?<input value={editingAYName} onChange={e=>setEditingAYName(e.target.value)} disabled={saving} style={{...inp,width:'200px'}}/>
+                      :<span style={{fontWeight:600,color:C.text}}>{ay.yearName}</span>}
+                  </td>
+                  <td style={{padding:'10px 12px',borderBottom:`1px solid ${C.border}`}}>
+                    <span style={{display:'inline-block',padding:'2px 9px',borderRadius:'999px',fontSize:'11.5px',fontWeight:700,background:'#EEF2FF',color:'#3730A3'}}>{ay.closurePeriodCount}</span>
+                  </td>
+                  <td style={{padding:'10px 12px',borderBottom:`1px solid ${C.border}`}}>
+                    <div style={{display:'flex',gap:'6px'}}>
+                      {editingAYId===ay.academicYearId
+                        ?<><button onClick={()=>saveAcademicYear(ay.academicYearId)} disabled={saving} style={{...btnPrimary,padding:'4px 10px',fontSize:'12px'}}>Save</button><button onClick={()=>{setEditingAYId(0);setEditingAYName('');}} style={{...btnSecondary,padding:'4px 10px',fontSize:'12px'}}>Cancel</button></>
+                        :<><button onClick={()=>{setEditingAYId(ay.academicYearId);setEditingAYName(ay.yearName);}} style={{padding:'4px 10px',border:'none',borderRadius:'6px',background:'#DBEAFE',color:'#1E40AF',fontSize:'12px',fontWeight:700,cursor:'pointer',fontFamily:font}}>Edit</button><button onClick={()=>deleteAcademicYear(ay)} disabled={saving} style={btnDanger}>Delete</button></>}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {!loading&&academicYears.length===0&&<tr><td colSpan={3} style={{padding:'1.5rem',textAlign:'center',color:C.textMuted,fontSize:'13px'}}>No academic years yet.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-    async function createAcademicYear() {
-        if (!newAcademicYearName.trim()) {
-            setMessage('Academic year name is required.');
-            return;
-        }
-
-        setSaving(true);
-        setMessage('Creating academic year...');
-
-        try {
-            const response = await fetch('/api/admin/academic-years', {
-                method: 'POST',
-                headers: getAuthHeaders({
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                }),
-                body: JSON.stringify({ yearName: newAcademicYearName.trim() }),
-            });
-
-            if (response.status === 401) {
-                window.location.href = '/login';
-                return;
-            }
-
-            const payload = await response.json().catch(() => null);
-            if (!response.ok) {
-                setMessage(payload?.message || `Create failed: ${response.status}`);
-                return;
-            }
-
-            setNewAcademicYearName('');
-            await loadData('Academic year created.');
-        } catch (error) {
-            const details = error instanceof Error ? error.message : String(error);
-            setMessage('Create error: ' + details);
-        } finally {
-            setSaving(false);
-        }
-    }
-
-    async function saveAcademicYear(academicYearId) {
-        if (!editingAcademicYearName.trim()) {
-            setMessage('Academic year name is required.');
-            return;
-        }
-
-        setSaving(true);
-        setMessage('Saving academic year...');
-
-        try {
-            const response = await fetch(`/api/admin/academic-years/${academicYearId}`, {
-                method: 'PUT',
-                headers: getAuthHeaders({
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                }),
-                body: JSON.stringify({ yearName: editingAcademicYearName.trim() }),
-            });
-
-            if (response.status === 401) {
-                window.location.href = '/login';
-                return;
-            }
-
-            const payload = await response.json().catch(() => null);
-            if (!response.ok) {
-                setMessage(payload?.message || `Save failed: ${response.status}`);
-                return;
-            }
-
-            setEditingAcademicYearId(0);
-            setEditingAcademicYearName('');
-            await loadData('Academic year updated.');
-        } catch (error) {
-            const details = error instanceof Error ? error.message : String(error);
-            setMessage('Save error: ' + details);
-        } finally {
-            setSaving(false);
-        }
-    }
-
-    async function deleteAcademicYear(academicYear) {
-        if (!window.confirm(`Delete academic year "${academicYear.yearName}"?`)) {
-            return;
-        }
-
-        setSaving(true);
-        setMessage('Deleting academic year...');
-
-        try {
-            const response = await fetch(`/api/admin/academic-years/${academicYear.academicYearId}`, {
-                method: 'DELETE',
-                headers: getAuthHeaders({ Accept: 'application/json' }),
-            });
-
-            if (response.status === 401) {
-                window.location.href = '/login';
-                return;
-            }
-
-            if (response.status === 409) {
-                const payload = await response.json().catch(() => null);
-                setMessage(payload?.message || 'Academic year cannot be deleted.');
-                return;
-            }
-
-            if (!response.ok) {
-                const payload = await response.json().catch(() => null);
-                setMessage(payload?.message || `Delete failed: ${response.status}`);
-                return;
-            }
-
-            await loadData('Academic year deleted.');
-        } catch (error) {
-            const details = error instanceof Error ? error.message : String(error);
-            setMessage('Delete error: ' + details);
-        } finally {
-            setSaving(false);
-        }
-    }
-
-    async function createClosurePeriod() {
-        if (!newClosurePeriod.academicYearId || !newClosurePeriod.title.trim() || !newClosurePeriod.ideaStartAt || !newClosurePeriod.ideaEndAt || !newClosurePeriod.commentEndAt) {
-            setMessage('Academic year, title, idea start, idea end, and comment end are required.');
-            return;
-        }
-
-        setSaving(true);
-        setMessage('Creating closure period...');
-
-        try {
-            const response = await fetch('/api/admin/closure-periods', {
-                method: 'POST',
-                headers: getAuthHeaders({
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                }),
-                body: JSON.stringify({
-                    academicYearId: Number(newClosurePeriod.academicYearId),
-                    title: newClosurePeriod.title.trim(),
-                    ideaStartAt: newClosurePeriod.ideaStartAt,
-                    ideaEndAt: newClosurePeriod.ideaEndAt,
-                    commentEndAt: newClosurePeriod.commentEndAt,
-                }),
-            });
-
-            if (response.status === 401) {
-                window.location.href = '/login';
-                return;
-            }
-
-            const payload = await response.json().catch(() => null);
-            if (!response.ok) {
-                setMessage(payload?.message || `Create failed: ${response.status}`);
-                return;
-            }
-
-            setNewClosurePeriod({
-                academicYearId: '',
-                title: '',
-                ideaStartAt: '',
-                ideaEndAt: '',
-                commentEndAt: '',
-            });
-            await loadData('Closure period created.');
-        } catch (error) {
-            const details = error instanceof Error ? error.message : String(error);
-            setMessage('Create error: ' + details);
-        } finally {
-            setSaving(false);
-        }
-    }
-
-    async function saveClosurePeriod(closurePeriodId) {
-        if (!editingClosurePeriod.academicYearId || !editingClosurePeriod.title.trim() || !editingClosurePeriod.ideaStartAt || !editingClosurePeriod.ideaEndAt || !editingClosurePeriod.commentEndAt) {
-            setMessage('Academic year, title, idea start, idea end, and comment end are required.');
-            return;
-        }
-
-        setSaving(true);
-        setMessage('Saving closure period...');
-
-        try {
-            const response = await fetch(`/api/admin/closure-periods/${closurePeriodId}`, {
-                method: 'PUT',
-                headers: getAuthHeaders({
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                }),
-                body: JSON.stringify({
-                    academicYearId: Number(editingClosurePeriod.academicYearId),
-                    title: editingClosurePeriod.title.trim(),
-                    ideaStartAt: editingClosurePeriod.ideaStartAt,
-                    ideaEndAt: editingClosurePeriod.ideaEndAt,
-                    commentEndAt: editingClosurePeriod.commentEndAt,
-                }),
-            });
-
-            if (response.status === 401) {
-                window.location.href = '/login';
-                return;
-            }
-
-            const payload = await response.json().catch(() => null);
-            if (!response.ok) {
-                setMessage(payload?.message || `Save failed: ${response.status}`);
-                return;
-            }
-
-            setEditingClosurePeriodId(0);
-            setEditingClosurePeriod({
-                academicYearId: '',
-                title: '',
-                ideaStartAt: '',
-                ideaEndAt: '',
-                commentEndAt: '',
-            });
-            await loadData('Closure period updated.');
-        } catch (error) {
-            const details = error instanceof Error ? error.message : String(error);
-            setMessage('Save error: ' + details);
-        } finally {
-            setSaving(false);
-        }
-    }
-
-    async function deleteClosurePeriod(closurePeriod) {
-        if (!window.confirm(`Delete closure period "${closurePeriod.title}"?`)) {
-            return;
-        }
-
-        setSaving(true);
-        setMessage('Deleting closure period...');
-
-        try {
-            const response = await fetch(`/api/admin/closure-periods/${closurePeriod.closurePeriodId}`, {
-                method: 'DELETE',
-                headers: getAuthHeaders({ Accept: 'application/json' }),
-            });
-
-            if (response.status === 401) {
-                window.location.href = '/login';
-                return;
-            }
-
-            const payload = await response.json().catch(() => null);
-            if (!response.ok) {
-                setMessage(payload?.message || `Delete failed: ${response.status}`);
-                return;
-            }
-
-            await loadData('Closure period deleted.');
-        } catch (error) {
-            const details = error instanceof Error ? error.message : String(error);
-            setMessage('Delete error: ' + details);
-        } finally {
-            setSaving(false);
-        }
-    }
-
-    function beginAcademicYearEdit(academicYear) {
-        setEditingAcademicYearId(academicYear.academicYearId);
-        setEditingAcademicYearName(academicYear.yearName);
-    }
-
-    function beginClosurePeriodEdit(closurePeriod) {
-        setEditingClosurePeriodId(closurePeriod.closurePeriodId);
-        setEditingClosurePeriod({
-            academicYearId: String(closurePeriod.academicYearId),
-            title: closurePeriod.title,
-            ideaStartAt: toDateTimeLocalValue(closurePeriod.ideaStartAt),
-            ideaEndAt: toDateTimeLocalValue(closurePeriod.ideaEndAt),
-            commentEndAt: toDateTimeLocalValue(closurePeriod.commentEndAt),
-        });
-    }
-
-    if (!session?.token || !user) {
-        return null;
-    }
-
-    return (
-        <AdminShell activeMenu="closure-periods">
+      {/* ── Closure Periods ── */}
+      <div style={{...card}}>
+        <h2 style={{margin:'0 0 1rem',fontSize:'14px',fontWeight:700,color:C.text}}>📅 Closure Periods</h2>
+        {/* Create form */}
+        <div style={{background:'#F8FAFC',borderRadius:'10px',padding:'1rem',border:`1px solid ${C.border}`,marginBottom:'1.1rem'}}>
+          <p style={{margin:'0 0 0.75rem',fontSize:'12px',fontWeight:600,color:C.textSub}}>Create new closure period</p>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:'0.6rem',alignItems:'end'}}>
             <div>
-                <h1>Closure Date Management</h1>
-                <p>Manage academic years and closure periods for idea submission and commenting.</p>
-
-                {message && <p>{message}</p>}
-
-                <p>
-                    <button type="button" onClick={() => loadData('Data refreshed.')} disabled={loading || saving}>
-                        Refresh
-                    </button>
-                </p>
-
-                <hr />
-
-                <h2>Academic Years</h2>
-                <p>
-                    <input
-                        value={newAcademicYearName}
-                        onChange={(event) => setNewAcademicYearName(event.target.value)}
-                        placeholder="Academic year name"
-                        disabled={saving}
-                    />
-                    {' '}
-                    <button type="button" onClick={createAcademicYear} disabled={saving}>
-                        Create academic year
-                    </button>
-                </p>
-
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                        <tr>
-                            <th style={{ textAlign: 'left' }}>Name</th>
-                            <th style={{ textAlign: 'left' }}>Closure periods</th>
-                            <th style={{ textAlign: 'left' }}>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {academicYears.map((academicYear) => (
-                            <tr key={academicYear.academicYearId}>
-                                <td style={{ padding: '0.5rem 0' }}>
-                                    {editingAcademicYearId === academicYear.academicYearId ? (
-                                        <input
-                                            value={editingAcademicYearName}
-                                            onChange={(event) => setEditingAcademicYearName(event.target.value)}
-                                            disabled={saving}
-                                        />
-                                    ) : (
-                                        academicYear.yearName
-                                    )}
-                                </td>
-                                <td>{academicYear.closurePeriodCount}</td>
-                                <td>
-                                    {editingAcademicYearId === academicYear.academicYearId ? (
-                                        <>
-                                            <button type="button" onClick={() => saveAcademicYear(academicYear.academicYearId)} disabled={saving}>Save</button>
-                                            {' '}
-                                            <button type="button" onClick={() => { setEditingAcademicYearId(0); setEditingAcademicYearName(''); }} disabled={saving}>Cancel</button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <button type="button" onClick={() => beginAcademicYearEdit(academicYear)} disabled={saving}>Edit</button>
-                                            {' '}
-                                            <button type="button" onClick={() => deleteAcademicYear(academicYear)} disabled={saving}>Delete</button>
-                                        </>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
-                        {!loading && academicYears.length === 0 && (
-                            <tr>
-                                <td colSpan={3}>No academic years yet.</td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-
-                <hr />
-
-                <h2>Closure Periods</h2>
-                <p>
-                    <select
-                        value={newClosurePeriod.academicYearId}
-                        onChange={(event) => setNewClosurePeriod((current) => ({ ...current, academicYearId: event.target.value }))}
-                        disabled={saving}>
-                        <option value="">Select academic year</option>
-                        {academicYears.map((academicYear) => (
-                            <option key={academicYear.academicYearId} value={academicYear.academicYearId}>
-                                {academicYear.yearName}
-                            </option>
-                        ))}
-                    </select>
-                    {' '}
-                    <input
-                        value={newClosurePeriod.title}
-                        onChange={(event) => setNewClosurePeriod((current) => ({ ...current, title: event.target.value }))}
-                        placeholder="Title"
-                        disabled={saving}
-                    />
-                    {' '}
-                    <input
-                        type="datetime-local"
-                        value={newClosurePeriod.ideaStartAt}
-                        onChange={(event) => setNewClosurePeriod((current) => ({ ...current, ideaStartAt: event.target.value }))}
-                        disabled={saving}
-                    />
-                    {' '}
-                    <input
-                        type="datetime-local"
-                        value={newClosurePeriod.ideaEndAt}
-                        onChange={(event) => setNewClosurePeriod((current) => ({ ...current, ideaEndAt: event.target.value }))}
-                        disabled={saving}
-                    />
-                    {' '}
-                    <input
-                        type="datetime-local"
-                        value={newClosurePeriod.commentEndAt}
-                        onChange={(event) => setNewClosurePeriod((current) => ({ ...current, commentEndAt: event.target.value }))}
-                        disabled={saving}
-                    />
-                    {' '}
-                    <button type="button" onClick={createClosurePeriod} disabled={saving}>
-                        Create closure period
-                    </button>
-                </p>
-
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                        <tr>
-                            <th style={{ textAlign: 'left' }}>Academic year</th>
-                            <th style={{ textAlign: 'left' }}>Title</th>
-                            <th style={{ textAlign: 'left' }}>Idea start</th>
-                            <th style={{ textAlign: 'left' }}>Idea end</th>
-                            <th style={{ textAlign: 'left' }}>Comment end</th>
-                            <th style={{ textAlign: 'left' }}>Ideas</th>
-                            <th style={{ textAlign: 'left' }}>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {closurePeriods.map((closurePeriod) => (
-                            <tr key={closurePeriod.closurePeriodId}>
-                                <td style={{ padding: '0.5rem 0' }}>
-                                    {editingClosurePeriodId === closurePeriod.closurePeriodId ? (
-                                        <select
-                                            value={editingClosurePeriod.academicYearId}
-                                            onChange={(event) => setEditingClosurePeriod((current) => ({ ...current, academicYearId: event.target.value }))}
-                                            disabled={saving}>
-                                            <option value="">Select academic year</option>
-                                            {academicYears.map((academicYear) => (
-                                                <option key={academicYear.academicYearId} value={academicYear.academicYearId}>
-                                                    {academicYear.yearName}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    ) : (
-                                        closurePeriod.academicYearName
-                                    )}
-                                </td>
-                                <td>
-                                    {editingClosurePeriodId === closurePeriod.closurePeriodId ? (
-                                        <input
-                                            value={editingClosurePeriod.title}
-                                            onChange={(event) => setEditingClosurePeriod((current) => ({ ...current, title: event.target.value }))}
-                                            disabled={saving}
-                                        />
-                                    ) : (
-                                        closurePeriod.title
-                                    )}
-                                </td>
-                                <td>
-                                    {editingClosurePeriodId === closurePeriod.closurePeriodId ? (
-                                        <input
-                                            type="datetime-local"
-                                            value={editingClosurePeriod.ideaStartAt}
-                                            onChange={(event) => setEditingClosurePeriod((current) => ({ ...current, ideaStartAt: event.target.value }))}
-                                            disabled={saving}
-                                        />
-                                    ) : (
-                                        formatDateTime(closurePeriod.ideaStartAt)
-                                    )}
-                                </td>
-                                <td>
-                                    {editingClosurePeriodId === closurePeriod.closurePeriodId ? (
-                                        <input
-                                            type="datetime-local"
-                                            value={editingClosurePeriod.ideaEndAt}
-                                            onChange={(event) => setEditingClosurePeriod((current) => ({ ...current, ideaEndAt: event.target.value }))}
-                                            disabled={saving}
-                                        />
-                                    ) : (
-                                        formatDateTime(closurePeriod.ideaEndAt)
-                                    )}
-                                </td>
-                                <td>
-                                    {editingClosurePeriodId === closurePeriod.closurePeriodId ? (
-                                        <input
-                                            type="datetime-local"
-                                            value={editingClosurePeriod.commentEndAt}
-                                            onChange={(event) => setEditingClosurePeriod((current) => ({ ...current, commentEndAt: event.target.value }))}
-                                            disabled={saving}
-                                        />
-                                    ) : (
-                                        formatDateTime(closurePeriod.commentEndAt)
-                                    )}
-                                </td>
-                                <td>{closurePeriod.ideaCount}</td>
-                                <td>
-                                    {editingClosurePeriodId === closurePeriod.closurePeriodId ? (
-                                        <>
-                                            <button type="button" onClick={() => saveClosurePeriod(closurePeriod.closurePeriodId)} disabled={saving}>Save</button>
-                                            {' '}
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setEditingClosurePeriodId(0);
-                                                    setEditingClosurePeriod({
-                                                        academicYearId: '',
-                                                        title: '',
-                                                        ideaStartAt: '',
-                                                        ideaEndAt: '',
-                                                        commentEndAt: '',
-                                                    });
-                                                }}
-                                                disabled={saving}>
-                                                Cancel
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <button type="button" onClick={() => beginClosurePeriodEdit(closurePeriod)} disabled={saving}>Edit</button>
-                                            {' '}
-                                            <button type="button" onClick={() => deleteClosurePeriod(closurePeriod)} disabled={saving}>Delete</button>
-                                        </>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
-                        {!loading && closurePeriods.length === 0 && (
-                            <tr>
-                                <td colSpan={7}>No closure periods yet.</td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+              <label style={{display:'block',fontSize:'10px',fontWeight:700,color:C.textMuted,marginBottom:'4px',textTransform:'uppercase',letterSpacing:'0.05em'}}>Academic Year</label>
+              <select value={newCP.academicYearId} onChange={e=>setNewCP(p=>({...p,academicYearId:e.target.value}))} disabled={saving} style={{...inp,cursor:'pointer'}}>
+                <option value="">Select year</option>
+                {academicYears.map(ay=><option key={ay.academicYearId} value={ay.academicYearId}>{ay.yearName}</option>)}
+              </select>
             </div>
-        </AdminShell>
-    );
+            <div>
+              <label style={{display:'block',fontSize:'10px',fontWeight:700,color:C.textMuted,marginBottom:'4px',textTransform:'uppercase',letterSpacing:'0.05em'}}>Title</label>
+              <input value={newCP.title} onChange={e=>setNewCP(p=>({...p,title:e.target.value}))} placeholder="Period title" disabled={saving} style={inp}/>
+            </div>
+            <div>
+              <label style={{display:'block',fontSize:'10px',fontWeight:700,color:C.textMuted,marginBottom:'4px',textTransform:'uppercase',letterSpacing:'0.05em'}}>Idea Start</label>
+              <input type="datetime-local" value={newCP.ideaStartAt} onChange={e=>setNewCP(p=>({...p,ideaStartAt:e.target.value}))} disabled={saving} style={inp}/>
+            </div>
+            <div>
+              <label style={{display:'block',fontSize:'10px',fontWeight:700,color:C.textMuted,marginBottom:'4px',textTransform:'uppercase',letterSpacing:'0.05em'}}>Idea End</label>
+              <input type="datetime-local" value={newCP.ideaEndAt} onChange={e=>setNewCP(p=>({...p,ideaEndAt:e.target.value}))} disabled={saving} style={inp}/>
+            </div>
+            <div>
+              <label style={{display:'block',fontSize:'10px',fontWeight:700,color:C.textMuted,marginBottom:'4px',textTransform:'uppercase',letterSpacing:'0.05em'}}>Comment End</label>
+              <input type="datetime-local" value={newCP.commentEndAt} onChange={e=>setNewCP(p=>({...p,commentEndAt:e.target.value}))} disabled={saving} style={inp}/>
+            </div>
+            <div style={{display:'flex',alignItems:'flex-end'}}>
+              <button onClick={createClosurePeriod} disabled={saving} style={{...btnPrimary,width:'100%',whiteSpace:'nowrap'}}>+ Create period</button>
+            </div>
+          </div>
+        </div>
+
+        {/* Periods table */}
+        <div style={{overflowX:'auto'}}>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12.5px',minWidth:'900px'}}>
+            <thead>
+              <tr style={{background:'#F8FAFC'}}>
+                {['Academic Year','Title','Idea Start','Idea End','Comment End','Ideas','Actions'].map(h=><th key={h} style={{padding:'8px 12px',textAlign:'left',fontSize:'10.5px',fontWeight:700,color:C.textMuted,textTransform:'uppercase',letterSpacing:'0.05em',borderBottom:`2px solid ${C.border}`,whiteSpace:'nowrap'}}>{h}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {closurePeriods.map((cp,i)=>{
+                const editing=editingCPId===cp.closurePeriodId;
+                return (
+                  <tr key={cp.closurePeriodId} style={{background:i%2===0?'#fff':'#FAFBFF'}}>
+                    <td style={{padding:'10px 12px',borderBottom:`1px solid ${C.border}`,verticalAlign:'middle'}}>
+                      {editing?<select value={editingCP.academicYearId} onChange={e=>setEditingCP(p=>({...p,academicYearId:e.target.value}))} disabled={saving} style={{...inp,width:'130px',cursor:'pointer'}}><option value="">Year</option>{academicYears.map(ay=><option key={ay.academicYearId} value={ay.academicYearId}>{ay.yearName}</option>)}</select>:<span style={{fontWeight:600}}>{cp.academicYearName}</span>}
+                    </td>
+                    <td style={{padding:'10px 12px',borderBottom:`1px solid ${C.border}`,verticalAlign:'middle'}}>
+                      {editing?<input value={editingCP.title} onChange={e=>setEditingCP(p=>({...p,title:e.target.value}))} disabled={saving} style={{...inp,width:'150px'}}/>:<span>{cp.title}</span>}
+                    </td>
+                    <td style={{padding:'10px 12px',borderBottom:`1px solid ${C.border}`,verticalAlign:'middle',whiteSpace:'nowrap',fontSize:'11.5px',color:C.textSub}}>
+                      {editing?<input type="datetime-local" value={editingCP.ideaStartAt} onChange={e=>setEditingCP(p=>({...p,ideaStartAt:e.target.value}))} disabled={saving} style={{...inp,width:'160px'}}/>:fmtDT(cp.ideaStartAt)}
+                    </td>
+                    <td style={{padding:'10px 12px',borderBottom:`1px solid ${C.border}`,verticalAlign:'middle',whiteSpace:'nowrap',fontSize:'11.5px',color:C.textSub}}>
+                      {editing?<input type="datetime-local" value={editingCP.ideaEndAt} onChange={e=>setEditingCP(p=>({...p,ideaEndAt:e.target.value}))} disabled={saving} style={{...inp,width:'160px'}}/>:fmtDT(cp.ideaEndAt)}
+                    </td>
+                    <td style={{padding:'10px 12px',borderBottom:`1px solid ${C.border}`,verticalAlign:'middle',whiteSpace:'nowrap',fontSize:'11.5px',color:C.textSub}}>
+                      {editing?<input type="datetime-local" value={editingCP.commentEndAt} onChange={e=>setEditingCP(p=>({...p,commentEndAt:e.target.value}))} disabled={saving} style={{...inp,width:'160px'}}/>:fmtDT(cp.commentEndAt)}
+                    </td>
+                    <td style={{padding:'10px 12px',borderBottom:`1px solid ${C.border}`,verticalAlign:'middle',textAlign:'center'}}>
+                      <span style={{fontWeight:700,color:C.primary}}>{cp.ideaCount}</span>
+                    </td>
+                    <td style={{padding:'10px 12px',borderBottom:`1px solid ${C.border}`,verticalAlign:'middle'}}>
+                      <div style={{display:'flex',gap:'5px'}}>
+                        {editing
+                          ?<><button onClick={()=>saveClosurePeriod(cp.closurePeriodId)} disabled={saving} style={{...btnPrimary,padding:'4px 10px',fontSize:'12px'}}>Save</button><button onClick={()=>{setEditingCPId(0);setEditingCP(emptyCP);}} style={{...btnSecondary,padding:'4px 10px',fontSize:'12px'}}>Cancel</button></>
+                          :<><button onClick={()=>{setEditingCPId(cp.closurePeriodId);setEditingCP({academicYearId:String(cp.academicYearId),title:cp.title,ideaStartAt:toLocal(cp.ideaStartAt),ideaEndAt:toLocal(cp.ideaEndAt),commentEndAt:toLocal(cp.commentEndAt)});}} style={{padding:'4px 10px',border:'none',borderRadius:'6px',background:'#DBEAFE',color:'#1E40AF',fontSize:'12px',fontWeight:700,cursor:'pointer',fontFamily:font}}>Edit</button><button onClick={()=>deleteClosurePeriod(cp)} disabled={saving} style={btnDanger}>Delete</button></>}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {!loading&&closurePeriods.length===0&&<tr><td colSpan={7} style={{padding:'1.5rem',textAlign:'center',color:C.textMuted,fontSize:'13px'}}>No closure periods yet.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </AdminShell>
+  );
 }

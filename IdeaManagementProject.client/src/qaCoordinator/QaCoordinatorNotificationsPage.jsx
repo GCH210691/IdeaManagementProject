@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
+import { BASE_URL, getAuthHeaders, getAuthSession, roleToPath } from '../shared/authStorage';
 import StaffShell from '../shells/StaffShell';
 
 export default function QaCoordinatorNotificationsPage() {
@@ -13,7 +13,7 @@ export default function QaCoordinatorNotificationsPage() {
         setLoading(true);
 
         try {
-            const response = await fetch('/api/qa-coordinator/notifications', {
+            const response = await fetch(`${BASE_URL}/api/qa-coordinator/notifications`, {
                 headers: getAuthHeaders({ Accept: 'application/json' }),
             });
 

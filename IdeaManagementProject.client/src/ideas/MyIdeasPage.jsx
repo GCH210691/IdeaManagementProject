@@ -8,374 +8,107 @@ import {
     roleToPath,
 } from '../shared/authStorage';
 import StaffShell from '../shells/StaffShell';
+import { C, badge, card, font } from '../shared/designTokens';
 
-function pageHeaderStyle() {
-    return {
-        marginBottom: '1rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '1rem',
-        flexWrap: 'wrap',
-    };
-}
-
-function h1Style() {
-    return { margin: '0 0 0.25rem 0', fontSize: '1.5rem', fontWeight: 900, color: '#111827' };
-}
-
-function subStyle() {
-    return { margin: 0, fontSize: '13px', color: '#6B7280' };
-}
-
-function actionButtonStyle(primary = false) {
-    return {
-        border: 'none',
-        borderRadius: '8px',
-        padding: '0.55rem 0.9rem',
-        fontSize: '12px',
-        fontWeight: 700,
-        cursor: 'pointer',
-        fontFamily: 'inherit',
-        color: primary ? '#fff' : '#111827',
-        background: primary ? '#2563EB' : '#E5E7EB',
-    };
-}
-
-function ideasGridStyle() {
-    return {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '1rem',
-        marginBottom: '1.25rem',
-    };
-}
-
-function ideaCardStyle() {
-    return {
-        background: '#fff',
-        borderRadius: '12px',
-        border: '1px solid #F3F4F6',
-        padding: '1rem',
-        boxSizing: 'border-box',
-    };
-}
-
-function badgeStyle() {
-    return {
-        fontSize: '11px',
-        fontWeight: 600,
-        padding: '2px 8px',
-        borderRadius: '999px',
-        background: '#EEF2FF',
-        color: '#3730A3',
-        maxWidth: '160px',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
-    };
-}
-
-function categoryTagStyle() {
-    return {
-        display: 'inline-block',
-        padding: '2px 8px',
-        marginRight: '0.35rem',
-        marginBottom: '0.35rem',
-        borderRadius: '999px',
-        background: '#DBEAFE',
-        color: '#1D4ED8',
-        fontSize: '11px',
-        fontWeight: 600,
-    };
-}
-
-function tinyButtonStyle(tone = 'neutral') {
-    const map = {
-        neutral: { background: '#E5E7EB', color: '#111827' },
-        primary: { background: '#DBEAFE', color: '#1E40AF' },
-        danger: { background: '#FEE2E2', color: '#991B1B' },
-    };
-
-    return {
-        border: 'none',
-        borderRadius: '6px',
-        padding: '4px 8px',
-        fontSize: '11px',
-        fontWeight: 700,
-        cursor: 'pointer',
-        fontFamily: 'inherit',
-        ...map[tone],
-    };
-}
-
-function sectionStyle() {
-    return {
-        background: '#fff',
-        borderRadius: '12px',
-        border: '1px solid #F3F4F6',
-        padding: '1.25rem',
-    };
-}
-
-function statRowStyle() {
-    return {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '1rem',
-        marginBottom: '1.25rem',
-    };
-}
-
-function statCardStyle() {
-    return {
-        background: '#fff',
-        borderRadius: '12px',
-        border: '1px solid #F3F4F6',
-        padding: '1rem',
-        boxSizing: 'border-box',
-    };
-}
-
-function toRelativeTime(value) {
-    if (!value) {
-        return 'Unknown time';
-    }
-
-    const date = new Date(value);
-    const diffMs = Date.now() - date.getTime();
-
-    if (Number.isNaN(diffMs) || diffMs < 0) {
-        return 'Just now';
-    }
-
-    const diffMin = Math.floor(diffMs / 60000);
-    if (diffMin < 1) {
-        return 'Just now';
-    }
-    if (diffMin < 60) {
-        return `${diffMin}m ago`;
-    }
-
-    const diffHour = Math.floor(diffMin / 60);
-    if (diffHour < 24) {
-        return `${diffHour}h ago`;
-    }
-
-    return `${Math.floor(diffHour / 24)}d ago`;
+function toRelativeTime(v) {
+  if(!v)return'';const d=Date.now()-new Date(v).getTime();if(d<0)return'Just now';const m=Math.floor(d/60000);if(m<1)return'Just now';if(m<60)return m+'m ago';const h=Math.floor(m/60);if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago';
 }
 
 export default function MyIdeasPage() {
-    const session = useMemo(() => getAuthSession(), []);
-    const user = session?.user;
+  const session = useMemo(()=>getAuthSession(),[]);
+  const user = session?.user;
+  const [ideas,setIdeas]=useState([]);
+  const [message,setMessage]=useState('Loading…');
+  const [deletingId,setDeletingId]=useState(0);
 
-    const [ideas, setIdeas] = useState([]);
-    const [message, setMessage] = useState('Loading your ideas...');
-    const [deletingId, setDeletingId] = useState(0);
-    const [actionMessage, setActionMessage] = useState('');
-
-    useEffect(() => {
-        if (!session?.token || !user) {
-            window.location.href = '/login';
-            return;
-        }
-
-        if (!canCreateIdeas(user)) {
-            window.location.href = roleToPath(user.role);
-            return;
-        }
-
-        let cancelled = false;
-
-        async function loadIdeas() {
-            try {
-                const endpoint = BASE_URL ? `${BASE_URL}/api/ideas` : '/api/ideas';
-                const response = await fetch(endpoint, {
-                    headers: getAuthHeaders({ Accept: 'application/json' }),
-                });
-
-                if (response.status === 401) {
-                    window.location.href = '/login';
-                    return;
-                }
-
-                if (!response.ok) {
-                    setMessage(`Unable to load ideas: ${response.status}`);
-                    return;
-                }
-
-                const payload = await response.json();
-                if (cancelled) {
-                    return;
-                }
-
-                const allIdeas = Array.isArray(payload) ? payload : [];
-                setIdeas(allIdeas.filter((idea) => Number(idea.authorUserId) === Number(user.id)));
-                setMessage('');
-            } catch (error) {
-                const details = error instanceof Error ? error.message : String(error);
-                setMessage(`Load error: ${details}`);
-            }
-        }
-
-        loadIdeas();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [session, user]);
-
-    const totalViews = useMemo(
-        () => ideas.reduce((sum, idea) => sum + (idea.viewCount || 0), 0),
-        [ideas],
-    );
-
-    function viewIdea(ideaId) {
-        window.location.href = `/ideas/${ideaId}`;
+  useEffect(()=>{
+    if(!session?.token||!user){window.location.href='/login';return;}
+    if(!canCreateIdeas(user)){window.location.href=roleToPath(user.role);return;}
+    let active=true;
+    async function load() {
+      try {
+        const endpoint=BASE_URL?`${BASE_URL}/api/ideas`:'/api/ideas';
+        const res=await fetch(endpoint,{headers:getAuthHeaders({Accept:'application/json'})});
+        if(res.status===401){window.location.href='/login';return;}
+        if(!res.ok){setMessage(`Load failed: ${res.status}`);return;}
+        const data=await res.json();
+        if(!active)return;
+        const mine=(Array.isArray(data)?data:[]).filter(i=>Number(i.authorUserId)===Number(user.id));
+        setIdeas(mine);setMessage('');
+      }catch(e){setMessage('Error: '+(e instanceof Error?e.message:String(e)));}
     }
+    load();
+    return()=>{active=false;};
+  },[session,user]);
 
-    function editIdea(idea) {
-        if (!canManageIdea(user, idea)) {
-            return;
-        }
+  async function deleteIdea(idea) {
+    if(!canManageIdea(user,idea))return;
+    if(!window.confirm(`Delete "${idea.title}"?`))return;
+    setDeletingId(idea.ideaId);setMessage('');
+    try {
+      const endpoint=BASE_URL?`${BASE_URL}/api/ideas/${idea.ideaId}`:`/api/ideas/${idea.ideaId}`;
+      const res=await fetch(endpoint,{method:'DELETE',headers:getAuthHeaders({Accept:'application/json'})});
+      if(res.status===401){window.location.href='/login';return;}
+      if(!res.ok){setMessage(`Delete failed: ${res.status}`);return;}
+      setIdeas(c=>c.filter(i=>i.ideaId!==idea.ideaId));setMessage('Idea deleted.');
+    }catch(e){setMessage('Error: '+(e instanceof Error?e.message:String(e)));}
+    finally{setDeletingId(0);}
+  }
 
-        window.location.href = `/ideas/${idea.ideaId}/edit`;
-    }
+  if(!session?.token||!user)return null;
 
-    async function deleteIdea(idea) {
-        if (!canManageIdea(user, idea)) {
-            setActionMessage('You can only delete your own ideas.');
-            return;
-        }
+  return (
+    <StaffShell activeMenu="myideas" footerText={`${ideas.length} of your ideas`}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1.5rem',flexWrap:'wrap',gap:'1rem'}}>
+        <div>
+          <h1 style={{margin:'0 0 4px',fontSize:'1.55rem',fontWeight:800,color:C.text,letterSpacing:'-0.02em'}}>My Ideas</h1>
+          <p style={{margin:0,fontSize:'13px',color:C.textSub}}>Ideas you have submitted to the system.</p>
+        </div>
+        <button onClick={()=>window.location.href='/ideas/create'} style={{padding:'0.6rem 1.1rem',border:'none',borderRadius:'8px',background:C.primary,color:'#fff',fontSize:'13px',fontWeight:600,cursor:'pointer',fontFamily:font}}>+ New Idea</button>
+      </div>
 
-        if (!window.confirm(`Delete idea "${idea.title}"?`)) {
-            return;
-        }
+      {message&&<p style={{color:message.includes('deleted')?C.successDk:'#B91C1C',fontSize:'13px',marginTop:0}}>{message}</p>}
 
-        setDeletingId(idea.ideaId);
-        setActionMessage('');
+      {!message&&ideas.length===0&&<div style={{...card,padding:'2.5rem',textAlign:'center'}}>
+        <div style={{fontSize:'48px',marginBottom:'0.75rem'}}>💡</div>
+        <h2 style={{margin:'0 0 0.4rem',fontSize:'15px',fontWeight:700,color:C.text}}>No ideas yet</h2>
+        <p style={{margin:'0 0 1.25rem',fontSize:'13px',color:C.textSub}}>Share your first idea with the community!</p>
+        <button onClick={()=>window.location.href='/ideas/create'} style={{padding:'0.65rem 1.4rem',border:'none',borderRadius:'9px',background:C.primary,color:'#fff',fontSize:'13.5px',fontWeight:700,cursor:'pointer',fontFamily:font}}>Create Idea</button>
+      </div>}
 
-        try {
-            const response = await fetch(`/api/ideas/${idea.ideaId}`, {
-                method: 'DELETE',
-                headers: getAuthHeaders({ Accept: 'application/json' }),
-            });
-
-            if (response.status === 401) {
-                window.location.href = '/login';
-                return;
-            }
-
-            if (response.status === 403) {
-                setActionMessage('You can only delete your own ideas.');
-                return;
-            }
-
-            if (response.status === 404) {
-                setActionMessage('Idea not found.');
-                setIdeas((current) => current.filter((item) => item.ideaId !== idea.ideaId));
-                return;
-            }
-
-            if (!response.ok) {
-                setActionMessage(`Delete failed: ${response.status}`);
-                return;
-            }
-
-            setIdeas((current) => current.filter((item) => item.ideaId !== idea.ideaId));
-            setActionMessage('Idea deleted.');
-        } catch (error) {
-            const details = error instanceof Error ? error.message : String(error);
-            setActionMessage(`Delete error: ${details}`);
-        } finally {
-            setDeletingId(0);
-        }
-    }
-
-    if (!session?.token || !user) {
-        return null;
-    }
-
-    return (
-        <StaffShell activeMenu="myideas" footerText={`${ideas.length} personal ideas`}>
-            <div style={pageHeaderStyle()}>
-                <div>
-                    <h1 style={h1Style()}>My Ideas</h1>
-                    <p style={subStyle()}>Manage only the ideas you created.</p>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(340px,1fr))',gap:'1rem'}}>
+        {ideas.map(idea=>{
+          const cats=Array.isArray(idea.categories)?idea.categories:[];
+          const commentCount=Array.isArray(idea.comments)?idea.comments.length:0;
+          return (
+            <div key={idea.ideaId} style={{...card,padding:'1.25rem',display:'flex',flexDirection:'column',gap:'0.6rem',cursor:'pointer',transition:'box-shadow .2s,transform .15s'}}
+              onMouseEnter={e=>{e.currentTarget.style.boxShadow='0 8px 24px rgba(79,70,229,0.12)';e.currentTarget.style.transform='translateY(-1px)';}}
+              onMouseLeave={e=>{e.currentTarget.style.boxShadow='';e.currentTarget.style.transform='';}}>
+              <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'0.5rem'}}>
+                <div style={{display:'flex',gap:'5px',flexWrap:'wrap'}}>
+                  <span style={{...badge.primary,fontSize:'10px'}}>{idea.departmentName}</span>
+                  {idea.isAnonymous&&<span style={{...badge.neutral,fontSize:'10px'}}>Anon</span>}
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <button type="button" style={actionButtonStyle()} onClick={() => { window.location.href = '/ideas'; }}>
-                        View all ideas
-                    </button>
-                    {canCreateIdeas(user) && (
-                        <button type="button" style={actionButtonStyle(true)} onClick={() => { window.location.href = '/ideas/create'; }}>
-                            Create idea
-                        </button>
-                    )}
-                </div>
+                <span style={{fontSize:'10.5px',color:C.textMuted,flexShrink:0}}>{toRelativeTime(idea.createdAt)}</span>
+              </div>
+              <h3 style={{margin:0,fontSize:'14px',fontWeight:700,color:C.text,lineHeight:1.35}}>{idea.title}</h3>
+              <p style={{margin:0,fontSize:'12px',color:C.textSub,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden',lineHeight:1.5}}>{idea.content}</p>
+              {cats.length>0&&<div style={{display:'flex',gap:'4px',flexWrap:'wrap'}}>{cats.map(c=><span key={c} style={{fontSize:'10px',padding:'2px 7px',borderRadius:'999px',background:'#EEF2FF',color:'#3730A3',fontWeight:600}}>{c}</span>)}</div>}
+              <div style={{display:'flex',gap:'1rem',fontSize:'11.5px',color:C.textMuted,marginTop:'2px'}}>
+                <span>👁 {idea.viewCount||0}</span>
+                <span style={{color:'#059669'}}>👍 {idea.upvoteCount||0}</span>
+                <span style={{color:'#DC2626'}}>👎 {idea.downvoteCount||0}</span>
+                <span>💬 {commentCount}</span>
+              </div>
+              <div style={{display:'flex',gap:'0.4rem',marginTop:'4px',paddingTop:'0.75rem',borderTop:`1px solid ${C.border}`}}>
+                <button onClick={()=>window.location.href='/ideas/'+idea.ideaId} style={{padding:'5px 12px',border:'none',borderRadius:'6px',background:'#EEF2FF',color:'#3730A3',fontSize:'11.5px',fontWeight:700,cursor:'pointer',fontFamily:font}}>View</button>
+                <button onClick={()=>window.location.href='/ideas/'+idea.ideaId+'/edit'} style={{padding:'5px 12px',border:'none',borderRadius:'6px',background:C.infoLt,color:C.infoDk,fontSize:'11.5px',fontWeight:700,cursor:'pointer',fontFamily:font}}>Edit</button>
+                <button onClick={()=>deleteIdea(idea)} disabled={deletingId===idea.ideaId} style={{padding:'5px 12px',border:'none',borderRadius:'6px',background:C.dangerLt,color:C.dangerDk,fontSize:'11.5px',fontWeight:700,cursor:'pointer',fontFamily:font,marginLeft:'auto'}}>{deletingId===idea.ideaId?'…':'Delete'}</button>
+              </div>
             </div>
-
-            <div style={statRowStyle()}>
-                <div style={statCardStyle()}>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#111827' }}>{ideas.length}</div>
-                    <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>Ideas you own</div>
-                </div>
-                <div style={statCardStyle()}>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#111827' }}>{totalViews}</div>
-                    <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>Combined views</div>
-                </div>
-                <div style={statCardStyle()}>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#111827' }}>{ideas.filter((idea) => idea.isAnonymous).length}</div>
-                    <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>Anonymous submissions</div>
-                </div>
-            </div>
-
-            {message && <p style={{ color: '#B91C1C', marginTop: 0 }}>{message}</p>}
-            {actionMessage && <p style={{ color: actionMessage.includes('deleted') ? '#065F46' : '#B91C1C', marginTop: 0 }}>{actionMessage}</p>}
-
-            {!message && ideas.length === 0 && (
-                <div style={sectionStyle()}>
-                    <p style={{ margin: 0, color: '#6B7280', fontSize: '13px' }}>You have not created any ideas yet.</p>
-                </div>
-            )}
-
-            {!message && ideas.length > 0 && (
-                <div style={ideasGridStyle()}>
-                    {ideas.map((idea) => (
-                        <div key={idea.ideaId} style={ideaCardStyle()}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                <span style={badgeStyle()}>{idea.departmentName || 'Department'}</span>
-                                <span style={{ fontSize: '11px', color: '#9CA3AF' }}>{toRelativeTime(idea.createdAt)}</span>
-                            </div>
-                            <h3 style={{ margin: '0 0 4px 0', fontSize: '13px', fontWeight: 700, color: '#111827', lineHeight: 1.4 }}>
-                                {idea.title}
-                            </h3>
-                            <div style={{ marginBottom: '0.5rem' }}>
-                                {(Array.isArray(idea.categories) ? idea.categories : []).map((category) => (
-                                    <span key={category} style={categoryTagStyle()}>{category}</span>
-                                ))}
-                                {(!Array.isArray(idea.categories) || idea.categories.length === 0) && (
-                                    <span style={{ color: '#9CA3AF', fontSize: '12px' }}>No categories</span>
-                                )}
-                            </div>
-                            <p style={{ margin: '0 0 0.75rem 0', fontSize: '12px', color: '#6B7280' }}>
-                                Views {idea.viewCount || 0} | {idea.isAnonymous ? 'Anonymous' : 'Named'}
-                            </p>
-                            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                                <button type="button" style={tinyButtonStyle('neutral')} onClick={() => viewIdea(idea.ideaId)}>View</button>
-                                <button type="button" style={tinyButtonStyle('primary')} onClick={() => editIdea(idea)}>Edit</button>
-                                <button
-                                    type="button"
-                                    style={tinyButtonStyle('danger')}
-                                    onClick={() => deleteIdea(idea)}
-                                    disabled={deletingId === idea.ideaId}>
-                                    {deletingId === idea.ideaId ? 'Deleting...' : 'Delete'}
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </StaffShell>
-    );
+          );
+        })}
+      </div>
+    </StaffShell>
+  );
 }
